@@ -1,68 +1,28 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { AppointmentSelection, PatientSelection, SelectionOption } from '@/lib/api/types';
+import { useEffect, useMemo, useState } from 'react';
+import type {
+  AppointmentSelection,
+  PatientSelection,
+  SelectionOption,
+} from '@/lib/api/types';
+import type { DashboardFilters } from '@/features/reception/models/ui';
 import { Button } from '@/shared/components/ui/Button';
 import { EmptyState } from '@/shared/components/ui/EmptyState';
 import { Modal } from '@/shared/components/ui/Modal';
 
-function SearchList<T>({
-  title,
-  subtitle,
-  items,
-  emptyTitle,
-  emptyDescription,
-  isLoading,
-  selectedKey,
-  getKey,
-  render,
-  onSearch,
-  onSelect,
-}: {
-  title: string;
-  subtitle: string;
-  items: T[];
-  emptyTitle: string;
-  emptyDescription: string;
-  isLoading?: boolean;
-  selectedKey?: string | number | null;
-  getKey: (item: T) => string | number;
-  render: (item: T) => React.ReactNode;
-  onSearch: (value: string) => void;
-  onSelect: (item: T) => void;
-}) {
-  return (
-    <div className="stack-md">
-      <div>
-        <h4>{title}</h4>
-        <p className="muted-text">{subtitle}</p>
-      </div>
-      <input className="search-input" placeholder="Escribe para buscar..." onChange={(event) => onSearch(event.target.value)} />
-      <div className="selection-list">
-        {isLoading ? <div className="loading-box">Buscando...</div> : null}
-        {!isLoading && items.length === 0 ? <EmptyState title={emptyTitle} description={emptyDescription} /> : null}
-        {items.map((item) => {
-          const key = getKey(item);
-          return (
-            <button
-              key={key}
-              type="button"
-              className={`selection-item ${selectedKey === key ? 'selection-item-active' : ''}`}
-              onClick={() => onSelect(item)}
-            >
-              {render(item)}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+function toOptionLabel(option?: SelectionOption) {
+  return option ? option.label || option.nombre : 'Selecciona...';
 }
 
 export function GenerateTicketModal({
   open,
   onClose,
   isLoading,
+  filters,
+  setFilters,
+  sedes,
+  servicios,
   priorityOptions,
   patientItems,
   appointmentItems,
@@ -70,14 +30,18 @@ export function GenerateTicketModal({
   selectedAppointment,
   onSelectPatient,
   onSelectAppointment,
-  onSearchPatients,
-  onSearchAppointments,
+  onLoadPatients,
+  onLoadAppointments,
   onGenerate,
   onGenerateSpecial,
 }: {
   open: boolean;
   onClose: () => void;
   isLoading?: boolean;
+  filters: DashboardFilters;
+  setFilters: React.Dispatch<React.SetStateAction<DashboardFilters>>;
+  sedes: SelectionOption[];
+  servicios: SelectionOption[];
   priorityOptions: SelectionOption[];
   patientItems: PatientSelection[];
   appointmentItems: AppointmentSelection[];
@@ -85,8 +49,8 @@ export function GenerateTicketModal({
   selectedAppointment: AppointmentSelection | null;
   onSelectPatient: (patient: PatientSelection | null) => void;
   onSelectAppointment: (appointment: AppointmentSelection | null) => void;
-  onSearchPatients: (text: string) => void;
-  onSearchAppointments: (text: string) => void;
+  onLoadPatients: () => Promise<unknown>;
+  onLoadAppointments: () => Promise<unknown>;
   onGenerate: (priority?: string) => Promise<unknown>;
   onGenerateSpecial: (reason: string) => Promise<unknown>;
 }) {
@@ -94,70 +58,131 @@ export function GenerateTicketModal({
   const [specialReason, setSpecialReason] = useState('');
 
   const usablePriorities = useMemo(
-    () => priorityOptions.filter((option) => option.label !== 'ESPECIAL' && option.activo),
+    () => priorityOptions.filter((option) => (option.label || option.nombre) !== 'ESPECIAL' && option.activo),
     [priorityOptions],
   );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    void onLoadPatients();
+    void onLoadAppointments();
+  }, [open, onLoadAppointments, onLoadPatients]);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Generacion de tickets con UX guiada"
-      subtitle="Selecciona un paciente y una cita confirmada si aplica. La interfaz prioriza nombres, contexto y listas claras."
+      title="Generar ticket"
+      subtitle="Selecciona sede, servicio, paciente o una cita confirmada."
       size="xl"
     >
       <div className="modal-grid-2">
-        <SearchList
-          title="Pacientes"
-          subtitle="Busca por nombre, expediente o documento."
-          items={patientItems}
-          emptyTitle="Sin pacientes cargados"
-          emptyDescription="Empieza a escribir para encontrar pacientes y seleccionarlos sin usar ids visibles."
-          isLoading={isLoading}
-          selectedKey={selectedPatient?.pacienteId}
-          getKey={(item) => item.pacienteId}
-          onSearch={onSearchPatients}
-          onSelect={(patient) => {
-            onSelectPatient(patient);
-            onSelectAppointment(null);
-          }}
-          render={(patient) => (
-            <div className="selection-content">
-              <strong>{patient.label}</strong>
-              <span>{patient.documento || patient.numeroExpediente || 'Sin identificador visible'}</span>
-              <small>{patient.telefono || 'Sin telefono registrado'}</small>
-            </div>
-          )}
-        />
+        <label className="field-group">
+          <span>Sede</span>
+          <select
+            value={filters.sedeId ?? ''}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                sedeId: event.target.value ? Number(event.target.value) : undefined,
+                servicioId: undefined,
+                estacionId: undefined,
+              }))
+            }
+          >
+            <option value="">{toOptionLabel(undefined)}</option>
+            {sedes.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label || option.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
 
-        <SearchList
-          title="Citas confirmadas"
-          subtitle="Si el paciente ya tenia una cita, puedes seleccionarla para generar el ticket directamente."
-          items={appointmentItems}
-          emptyTitle="No hay citas confirmadas"
-          emptyDescription="Busca por nombre o espera a que existan citas confirmadas para la sede y servicio elegidos."
-          isLoading={isLoading}
-          selectedKey={selectedAppointment?.citaId}
-          getKey={(item) => item.citaId}
-          onSearch={onSearchAppointments}
-          onSelect={(appointment) => {
-            onSelectAppointment(appointment);
-            onSelectPatient(null);
-          }}
-          render={(appointment) => (
-            <div className="selection-content">
-              <strong>{appointment.label}</strong>
-              <span>{appointment.servicioNombre} · {appointment.sedeNombre}</span>
-              <small>{new Date(appointment.fechaInicio).toLocaleString()}</small>
-            </div>
-          )}
-        />
+        <label className="field-group">
+          <span>Servicio</span>
+          <select
+            value={filters.servicioId ?? ''}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                servicioId: event.target.value ? Number(event.target.value) : undefined,
+              }))
+            }
+          >
+            <option value="">{toOptionLabel(undefined)}</option>
+            {servicios.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label || option.nombre}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field-group">
+          <span>Paciente</span>
+          <select
+            value={selectedPatient?.pacienteId ?? ''}
+            onChange={(event) => {
+              const patient = patientItems.find(
+                (item) => item.pacienteId === Number(event.target.value),
+              ) ?? null;
+              onSelectPatient(patient);
+              if (patient) {
+                onSelectAppointment(null);
+              }
+            }}
+          >
+            <option value="">Selecciona...</option>
+            {patientItems.map((patient) => (
+              <option key={patient.pacienteId} value={patient.pacienteId}>
+                {patient.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field-group">
+          <span>Cita confirmada</span>
+          <select
+            value={selectedAppointment?.citaId ?? ''}
+            onChange={(event) => {
+              const appointment = appointmentItems.find(
+                (item) => item.citaId === Number(event.target.value),
+              ) ?? null;
+              onSelectAppointment(appointment);
+              if (appointment) {
+                onSelectPatient(null);
+              }
+            }}
+          >
+            <option value="">Selecciona...</option>
+            {appointmentItems.map((appointment) => (
+              <option key={appointment.citaId} value={appointment.citaId}>
+                {appointment.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+
+      {!patientItems.length && !appointmentItems.length ? (
+        <EmptyState
+          title="Sin opciones disponibles"
+          description="Cuando existan pacientes o citas confirmadas, aparecerán aquí."
+        />
+      ) : null}
 
       <div className="ticket-config-box">
         <div className="field-group">
-          <span>Prioridad para ticket normal</span>
-          <select value={selectedPriority} onChange={(event) => setSelectedPriority(event.target.value)}>
+          <span>Prioridad</span>
+          <select
+            value={selectedPriority}
+            onChange={(event) => setSelectedPriority(event.target.value)}
+          >
             {usablePriorities.map((option) => (
               <option key={option.id} value={option.label || option.nombre}>
                 {option.label || option.nombre}
@@ -167,28 +192,41 @@ export function GenerateTicketModal({
         </div>
 
         <div className="field-group">
-          <span>Motivo para ticket especial</span>
+          <span>Motivo especial</span>
           <textarea
             rows={3}
             value={specialReason}
-            placeholder="Explica por que el paciente requiere prioridad especial..."
+            placeholder="Describe el motivo especial"
             onChange={(event) => setSpecialReason(event.target.value)}
           />
         </div>
       </div>
 
       <div className="modal-actions">
-        <Button variant="ghost" onClick={onClose}>Cerrar</Button>
-        <Button loading={isLoading} variant="secondary" onClick={async () => {
-          const created = await onGenerate(selectedPriority);
-          if (created) onClose();
-        }}>
+        <Button variant="ghost" onClick={onClose}>
+          Cerrar
+        </Button>
+        <Button
+          variant="secondary"
+          loading={isLoading}
+          onClick={async () => {
+            const created = await onGenerate(selectedPriority);
+            if (created) {
+              onClose();
+            }
+          }}
+        >
           Generar ticket normal
         </Button>
-        <Button loading={isLoading} onClick={async () => {
-          const created = await onGenerateSpecial(specialReason);
-          if (created) onClose();
-        }}>
+        <Button
+          loading={isLoading}
+          onClick={async () => {
+            const created = await onGenerateSpecial(specialReason);
+            if (created) {
+              onClose();
+            }
+          }}
+        >
           Generar ticket especial
         </Button>
       </div>

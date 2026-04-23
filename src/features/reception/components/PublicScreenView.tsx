@@ -1,13 +1,25 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueueDisplay } from '@/features/reception/hooks/useQueueDisplay';
 
 export function PublicScreenView({ sedeId, servicioId }: { sedeId: number; servicioId: number }) {
   const { queue, error } = useQueueDisplay(sedeId, servicioId, true);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const subtitle = useMemo(() => {
-    if (!queue) return 'Esperando informacion de la cola...';
+    if (!queue) {
+      return 'Esperando información de la cola';
+    }
+
     return `${queue.sedeNombre} · ${queue.servicioNombre}`;
   }, [queue]);
 
@@ -17,11 +29,14 @@ export function PublicScreenView({ sedeId, servicioId }: { sedeId: number; servi
       <div className="public-page-content">
         <header className="public-page-header">
           <div>
-            <span className="eyebrow light">Pantalla publica premium</span>
+            <span className="eyebrow light">Pantalla pública</span>
             <h1>{subtitle}</h1>
-            <p>Vista pensada para monitor o television con actualizacion continua.</p>
+            <p>Vista de turnos en tiempo real.</p>
           </div>
-          <div className="clock-box">{new Date().toLocaleTimeString()}</div>
+          <div className="clock-box">
+            <div>{now.toLocaleDateString()}</div>
+            <strong>{now.toLocaleTimeString()}</strong>
+          </div>
         </header>
 
         {error ? <div className="inline-alert inline-alert-warning">{error}</div> : null}
@@ -39,10 +54,11 @@ export function PublicScreenView({ sedeId, servicioId }: { sedeId: number; servi
               <span>{item.consultorioNombre ?? 'Pendiente'}</span>
             </article>
           ))}
+
           {(!queue || queue.proximos.length === 0) ? (
             <article className="public-next-ticket public-next-empty">
               <strong>Sin cola</strong>
-              <span>Los proximos tickets apareceran aqui.</span>
+              <span>Los próximos tickets aparecerán aquí.</span>
             </article>
           ) : null}
         </section>

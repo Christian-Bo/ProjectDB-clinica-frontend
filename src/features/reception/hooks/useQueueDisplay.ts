@@ -5,7 +5,11 @@ import { env } from '@/config/env';
 import { receptionApi } from '@/lib/api/reception';
 import type { QueueDisplayResponse } from '@/lib/api/types';
 
-export function useQueueDisplay(sedeId?: number, servicioId?: number, enableRealtime = true) {
+export function useQueueDisplay(
+  sedeId?: number,
+  servicioId?: number,
+  enableRealtime = true,
+) {
   const [queue, setQueue] = useState<QueueDisplayResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,17 +17,19 @@ export function useQueueDisplay(sedeId?: number, servicioId?: number, enableReal
   useEffect(() => {
     if (!sedeId || !servicioId) {
       setQueue(null);
+      setError(null);
       return;
     }
 
     let disposed = false;
     let eventSource: EventSource | null = null;
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const load = async () => {
       try {
         setIsLoading(true);
         const response = await receptionApi.getPantallaCola(sedeId, servicioId);
+
         if (!disposed) {
           setQueue(response.data);
           setError(null);
@@ -39,7 +45,7 @@ export function useQueueDisplay(sedeId?: number, servicioId?: number, enableReal
       }
     };
 
-    load();
+    void load();
 
     if (enableRealtime && typeof window !== 'undefined') {
       const url = new URL('/api/pantalla/cola/stream', env.apiUrl);
@@ -57,9 +63,9 @@ export function useQueueDisplay(sedeId?: number, servicioId?: number, enableReal
               setError(null);
             }
           } catch {
-            // Si el payload no puede parsearse, dejamos que el polling de respaldo se encargue.
           }
         });
+
         eventSource.onerror = () => {
           eventSource?.close();
           eventSource = null;
@@ -69,12 +75,16 @@ export function useQueueDisplay(sedeId?: number, servicioId?: number, enableReal
       }
     }
 
-    intervalId = setInterval(load, 15000);
+    intervalId = setInterval(() => {
+      void load();
+    }, 15000);
 
     return () => {
       disposed = true;
       eventSource?.close();
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [enableRealtime, sedeId, servicioId]);
 

@@ -15,11 +15,16 @@ export function QueueDisplayPanel({
     <Card className="stack-lg">
       <div className="section-heading-row">
         <div>
-          <span className="eyebrow">Pantalla publica</span>
-          <h3>Visualizacion near real-time</h3>
+          <span className="eyebrow">Pantalla pública</span>
+          <h3>Llamado en curso</h3>
         </div>
-        <Link href="/pantalla-publica" target="_blank" className="btn btn-secondary">
-          Abrir vista premium
+        <Link
+          href="/pantalla-publica"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary"
+        >
+          Abrir pantalla pública
         </Link>
       </div>
 
@@ -28,7 +33,7 @@ export function QueueDisplayPanel({
       {!queue ? (
         <EmptyState
           title="Selecciona sede y servicio"
-          description="La pantalla publica necesita estos filtros para mostrar el turno actual y los proximos tickets."
+          description="La pantalla pública necesita ambos filtros para mostrar la cola."
         />
       ) : (
         <>
@@ -46,12 +51,15 @@ export function QueueDisplayPanel({
 
           <div className="queue-next-grid">
             {queue.proximos.length === 0 ? (
-              <EmptyState title="Sin proximos tickets" description="Cuando el backend tenga cola disponible, aparecera aqui automaticamente." />
+              <EmptyState
+                title="Sin próximos tickets"
+                description="Cuando haya cola disponible, aparecerá aquí."
+              />
             ) : (
               queue.proximos.map((item) => (
                 <div key={item.ticketId} className="queue-next-item">
                   <strong>{item.numeroTicket}</strong>
-                  <span>{item.consultorioNombre ?? 'Pendiente de consultorio'}</span>
+                  <span>{item.consultorioNombre ?? 'Pendiente'}</span>
                 </div>
               ))
             )}

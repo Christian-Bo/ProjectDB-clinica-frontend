@@ -25,7 +25,7 @@ const INITIAL_SUMMARY: ReceptionOperationalSummary = {
 
 export function useDashboardData() {
   const toast = useToast();
-  const [filters, setFilters] = useState<DashboardFilters>({ usuarioId: 1 });
+  const [filters, setFilters] = useState<DashboardFilters>({});
   const [loading, setLoading] = useState<LoadingMap>({});
   const [sedes, setSedes] = useState<SelectionOption[]>([]);
   const [servicios, setServicios] = useState<SelectionOption[]>([]);
@@ -39,14 +39,14 @@ export function useDashboardData() {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentSelection | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<TicketDetail | null>(null);
 
-  const withLoading = async <T,>(key: string, action: () => Promise<T>) => {
+  const withLoading = useCallback(async <T,>(key: string, action: () => Promise<T>) => {
     setLoading((current) => ({ ...current, [key]: true }));
     try {
       return await action();
     } finally {
       setLoading((current) => ({ ...current, [key]: false }));
     }
-  };
+  }, []);
 
   const loadBootstrap = useCallback(async () => {
     try {
@@ -54,16 +54,20 @@ export function useDashboardData() {
         receptionApi.getSedes(),
         receptionApi.getPrioridades(),
       ]);
+
       setSedes(sedesResponse.data);
       setPrioridades(prioridadesResponse.data);
 
-      const defaultSede = sedesResponse.data[0];
-      if (defaultSede) {
-        setFilters((current) => ({ ...current, sedeId: current.sedeId ?? defaultSede.id }));
+      const firstSedeId = sedesResponse.data[0]?.id;
+      if (firstSedeId) {
+        setFilters((current) => ({
+          ...current,
+          sedeId: current.sedeId ?? firstSedeId,
+        }));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No fue posible cargar catalogos iniciales.';
-      toast.error('Error cargando catalogos', message);
+      const message = err instanceof Error ? err.message : 'No fue posible cargar catálogos.';
+      toast.error('Error', message);
     }
   }, [toast]);
 
@@ -72,7 +76,12 @@ export function useDashboardData() {
   }, [loadBootstrap]);
 
   useEffect(() => {
-    if (!filters.sedeId) return;
+    if (!filters.sedeId) {
+      setServicios([]);
+      setEstaciones([]);
+      setAppointments([]);
+      return;
+    }
 
     void withLoading('catalogosDependientes', async () => {
       try {
@@ -84,29 +93,45 @@ export function useDashboardData() {
         setServicios(serviciosResponse.data);
         setEstaciones(estacionesResponse.data);
 
-        setFilters((current) => ({
-          ...current,
-          servicioId: current.servicioId ?? serviciosResponse.data[0]?.id,
-          estacionId: current.estacionId ?? estacionesResponse.data[0]?.id,
-        }));
+        setFilters((current) => {
+          const servicioId = serviciosResponse.data.some((item) => item.id === current.servicioId)
+            ? current.servicioId
+            : serviciosResponse.data[0]?.id;
+
+          const estacionId = estacionesResponse.data.some((item) => item.id === current.estacionId)
+            ? current.estacionId
+            : estacionesResponse.data[0]?.id;
+
+          return {
+            ...current,
+            servicioId,
+            estacionId,
+          };
+        });
       } catch (err) {
-        toast.error('Error cargando servicios y estaciones', err instanceof Error ? err.message : 'No fue posible completar la carga.');
+        toast.error('Error', err instanceof Error ? err.message : 'No fue posible cargar datos.');
       }
     });
-  }, [filters.sedeId, toast]);
+  }, [filters.sedeId, toast, withLoading]);
 
   const refreshDashboard = useCallback(async () => {
-    if (!filters.sedeId || !filters.servicioId) return;
+    if (!filters.sedeId || !filters.servicioId) {
+      return;
+    }
 
     try {
       const [summaryResponse, ticketsResponse] = await Promise.all([
         receptionApi.getResumenOperativo(filters.sedeId, filters.servicioId),
-        receptionApi.getTickets({ sedeId: filters.sedeId, servicioId: filters.servicioId }),
+        receptionApi.getTickets({
+          sedeId: filters.sedeId,
+          servicioId: filters.servicioId,
+        }),
       ]);
+
       setSummary(summaryResponse.data);
       setTickets(ticketsResponse.data);
     } catch (err) {
-      toast.error('No fue posible actualizar el dashboard', err instanceof Error ? err.message : 'Intenta de nuevo.');
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible actualizar.');
     }
   }, [filters.sedeId, filters.servicioId, toast]);
 
@@ -114,156 +139,192 @@ export function useDashboardData() {
     void refreshDashboard();
   }, [refreshDashboard]);
 
-  const searchPatients = useCallback(async (texto: string) => {
-    return withLoading('patients', async () => {
-      const response = await receptionApi.getPacientes(texto);
+  const loadPatients = useCallback(async () => {
+    try {
+      const response = await withLoading('patients', async () => receptionApi.getPacientes(undefined, 100));
       setPatients(response.data);
       return response.data;
-    });
-  }, []);
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible cargar pacientes.');
+      return [];
+    }
+  }, [toast, withLoading]);
 
-  const searchAppointments = useCallback(async (texto: string) => {
+  const loadAppointments = useCallback(async () => {
     if (!filters.sedeId || !filters.servicioId) {
-      toast.warning('Selecciona sede y servicio', 'La busqueda de citas confirmadas necesita estos filtros.');
+      setAppointments([]);
       return [];
     }
 
-    return withLoading('appointments', async () => {
-      const response = await receptionApi.getCitasConfirmadas(filters.sedeId, filters.servicioId, texto);
+    try {
+      const response = await withLoading('appointments', async () =>
+        receptionApi.getCitasConfirmadas(filters.sedeId, filters.servicioId),
+      );
       setAppointments(response.data);
       return response.data;
-    });
-  }, [filters.sedeId, filters.servicioId, toast]);
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible cargar citas.');
+      return [];
+    }
+  }, [filters.sedeId, filters.servicioId, toast, withLoading]);
+
+  useEffect(() => {
+    void loadAppointments();
+  }, [loadAppointments]);
 
   const generateNormalTicket = useCallback(async (priority = 'NORMAL') => {
     if (!filters.sedeId || !filters.servicioId) {
-      toast.warning('Selecciona sede y servicio', 'Necesitamos esos datos para generar el ticket.');
+      toast.warning('Atención', 'Selecciona sede y servicio.');
       return null;
     }
 
     if (!selectedPatient && !selectedAppointment) {
-      toast.warning('Selecciona un paciente o una cita', 'El ticket requiere un paciente relacionado.');
+      toast.warning('Atención', 'Selecciona un paciente o una cita.');
       return null;
     }
 
     try {
-      const response = await withLoading('generateTicket', async () => receptionApi.generarTicket({
-        citaId: selectedAppointment?.citaId,
-        pacienteId: selectedAppointment?.pacienteId ?? selectedPatient?.pacienteId,
-        sedeId: filters.sedeId,
-        servicioId: filters.servicioId,
-        prioridadSolicitada: priority,
-        usuarioId: filters.usuarioId,
-      }));
+      const response = await withLoading('generateTicket', async () =>
+        receptionApi.generarTicket({
+          citaId: selectedAppointment?.citaId,
+          pacienteId: selectedAppointment?.pacienteId ?? selectedPatient?.pacienteId,
+          sedeId: filters.sedeId,
+          servicioId: filters.servicioId,
+          prioridadSolicitada: priority,
+          usuarioId: filters.usuarioId,
+        }),
+      );
 
       setSelectedTicket(response.data);
-      toast.success('Ticket generado correctamente', `Numero asignado: ${response.data.numeroTicket}`);
+      toast.success('Correcto', `Ticket ${response.data.numeroTicket} generado.`);
       await refreshDashboard();
       return response.data;
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No fue posible generar el ticket.';
-      toast.error('Error generando ticket', message);
+      toast.error('Error', message);
       return null;
     }
-  }, [filters, refreshDashboard, selectedAppointment, selectedPatient, toast]);
+  }, [filters, refreshDashboard, selectedAppointment, selectedPatient, toast, withLoading]);
 
   const generateSpecialTicket = useCallback(async (reason: string) => {
     if (!filters.sedeId || !filters.servicioId) {
-      toast.warning('Selecciona sede y servicio', 'Necesitamos esos datos para generar un ticket especial.');
+      toast.warning('Atención', 'Selecciona sede y servicio.');
       return null;
     }
 
     if (!selectedPatient && !selectedAppointment) {
-      toast.warning('Selecciona un paciente o una cita', 'El ticket requiere un paciente relacionado.');
+      toast.warning('Atención', 'Selecciona un paciente o una cita.');
+      return null;
+    }
+
+    if (!reason.trim()) {
+      toast.warning('Atención', 'Escribe el motivo especial.');
       return null;
     }
 
     try {
-      const response = await withLoading('generateSpecialTicket', async () => receptionApi.generarTicketEspecial({
-        citaId: selectedAppointment?.citaId,
-        pacienteId: selectedAppointment?.pacienteId ?? selectedPatient?.pacienteId,
-        sedeId: filters.sedeId,
-        servicioId: filters.servicioId,
-        motivoEspecial: reason,
-        usuarioId: filters.usuarioId,
-      }));
+      const response = await withLoading('generateSpecialTicket', async () =>
+        receptionApi.generarTicketEspecial({
+          citaId: selectedAppointment?.citaId,
+          pacienteId: selectedAppointment?.pacienteId ?? selectedPatient?.pacienteId,
+          sedeId: filters.sedeId,
+          servicioId: filters.servicioId,
+          motivoEspecial: reason,
+          usuarioId: filters.usuarioId,
+        }),
+      );
 
       setSelectedTicket(response.data);
-      toast.success('Ticket especial generado', `Numero asignado: ${response.data.numeroTicket}`);
+      toast.success('Correcto', `Ticket ${response.data.numeroTicket} generado.`);
       await refreshDashboard();
       return response.data;
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'No fue posible generar el ticket especial.';
-      toast.error('Error generando ticket especial', message);
+      const message = err instanceof ApiError
+        ? err.message
+        : 'No fue posible generar el ticket especial.';
+      toast.error('Error', message);
       return null;
     }
-  }, [filters, refreshDashboard, selectedAppointment, selectedPatient, toast]);
+  }, [filters, refreshDashboard, selectedAppointment, selectedPatient, toast, withLoading]);
 
   const callNext = useCallback(async () => {
-    if (!filters.sedeId || !filters.servicioId) {
-      toast.warning('Selecciona sede y servicio', 'Necesitamos estos filtros para llamar el siguiente ticket.');
+    const { sedeId, servicioId, estacionId, usuarioId } = filters;
+
+    if (!sedeId || !servicioId) {
+      toast.warning('Atención', 'Selecciona sede y servicio.');
       return null;
     }
 
     try {
-      const response = await withLoading('callNext', async () => receptionApi.llamarSiguiente({
-        sedeId: filters.sedeId!,
-        servicioId: filters.servicioId!,
-        estacionId: filters.estacionId,
-        usuarioId: filters.usuarioId,
-      }));
+      const response = await withLoading('callNext', async () =>
+        receptionApi.llamarSiguiente({
+          sedeId,
+          servicioId,
+          estacionId,
+          usuarioId,
+        }),
+      );
 
       setSelectedTicket(response.data);
-      toast.info('Siguiente ticket llamado', `${response.data.numeroTicket} fue enviado a atencion.`);
+      toast.info('Llamado', `${response.data.numeroTicket} fue enviado a atención.`);
       await refreshDashboard();
       return response.data;
     } catch (err) {
-      toast.error('No se pudo llamar el siguiente ticket', err instanceof Error ? err.message : 'Intenta de nuevo.');
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible llamar el ticket.');
       return null;
     }
-  }, [filters, refreshDashboard, toast]);
+  }, [filters, refreshDashboard, toast, withLoading]);
 
   const markInAttention = useCallback(async (ticketId: number) => {
     try {
-      const response = await withLoading('markInAttention', async () => receptionApi.marcarEnAtencion(ticketId));
+      const response = await withLoading('markInAttention', async () =>
+        receptionApi.marcarEnAtencion(ticketId),
+      );
+
       setSelectedTicket(response.data);
-      toast.info('Ticket en atencion', `${response.data.numeroTicket} ya esta siendo atendido.`);
+      toast.info('Actualizado', `${response.data.numeroTicket} en atención.`);
       await refreshDashboard();
       return response.data;
     } catch (err) {
-      toast.error('No se pudo marcar en atencion', err instanceof Error ? err.message : 'Intenta de nuevo.');
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible cambiar el estado.');
       return null;
     }
-  }, [refreshDashboard, toast]);
+  }, [refreshDashboard, toast, withLoading]);
 
   const finishTicket = useCallback(async (ticketId: number, motivo?: string) => {
     try {
-      const response = await withLoading('finishTicket', async () => receptionApi.finalizarTicket(ticketId, { motivo }));
+      const response = await withLoading('finishTicket', async () =>
+        receptionApi.finalizarTicket(ticketId, { motivo }),
+      );
+
       setSelectedTicket(response.data);
-      toast.success('Ticket finalizado', `${response.data.numeroTicket} finalizo correctamente.`);
+      toast.success('Finalizado', `${response.data.numeroTicket} finalizado.`);
       await refreshDashboard();
       return response.data;
     } catch (err) {
-      toast.error('No se pudo finalizar', err instanceof Error ? err.message : 'Intenta nuevamente.');
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible finalizar.');
       return null;
     }
-  }, [refreshDashboard, toast]);
+  }, [refreshDashboard, toast, withLoading]);
 
   const processNoShow = useCallback(async () => {
     try {
-      const response = await withLoading('processNoShow', async () => receptionApi.procesarNoShow());
-      toast.warning('Proceso de NO_SHOW ejecutado', `Registros procesados: ${response.data.registrosProcesados}`);
+      const response = await withLoading('processNoShow', async () =>
+        receptionApi.procesarNoShow(),
+      );
+
+      toast.warning('Proceso ejecutado', `Registros procesados: ${response.data.registrosProcesados}`);
       await refreshDashboard();
       return response.data;
     } catch (err) {
-      toast.error('No se pudo procesar NO_SHOW', err instanceof Error ? err.message : 'Intenta de nuevo.');
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible procesar no-show.');
       return null;
     }
-  }, [refreshDashboard, toast]);
+  }, [refreshDashboard, toast, withLoading]);
 
   const findTicket = useCallback(async (reference: string) => {
     if (!reference.trim()) {
-      toast.warning('Ingresa un ticket', 'Puedes escribir el numero del ticket o su id.');
+      toast.warning('Atención', 'Ingresa un número o id.');
       return null;
     }
 
@@ -273,10 +334,10 @@ export function useDashboardData() {
         : await receptionApi.getTicketByNumber(reference);
 
       setSelectedTicket(response.data);
-      toast.info('Ticket encontrado', `${response.data.numeroTicket} - ${response.data.estado}`);
+      toast.info('Encontrado', `${response.data.numeroTicket} - ${response.data.estado}`);
       return response.data;
     } catch (err) {
-      toast.error('No se encontro el ticket', err instanceof Error ? err.message : 'Verifica los datos ingresados.');
+      toast.error('Error', err instanceof Error ? err.message : 'No se encontró el ticket.');
       return null;
     }
   }, [toast]);
@@ -299,8 +360,8 @@ export function useDashboardData() {
     setSelectedAppointment,
     selectedTicket,
     setSelectedTicket,
-    searchPatients,
-    searchAppointments,
+    loadPatients,
+    loadAppointments,
     generateNormalTicket,
     generateSpecialTicket,
     callNext,
@@ -317,14 +378,14 @@ export function useDashboardData() {
     finishTicket,
     generateNormalTicket,
     generateSpecialTicket,
+    loadAppointments,
+    loadPatients,
     loading,
     markInAttention,
     patients,
     prioridades,
     processNoShow,
     refreshDashboard,
-    searchAppointments,
-    searchPatients,
     sedes,
     selectedAppointment,
     selectedPatient,

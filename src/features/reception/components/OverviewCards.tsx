@@ -4,12 +4,12 @@ import { Card } from '@/shared/components/ui/Card';
 
 export function OverviewCards({ summary }: { summary: ReceptionOperationalSummary }) {
   const items = [
-    { title: 'En espera', value: summary.ticketsEnEspera, tone: 'info', hint: 'Pacientes pendientes de ser llamados' },
-    { title: 'Llamados', value: summary.ticketsLlamados, tone: 'warning', hint: 'Tickets ya expuestos en pantalla publica' },
-    { title: 'En atencion', value: summary.ticketsEnAtencion, tone: 'info', hint: 'Pacientes pasando por consulta o ventanilla' },
-    { title: 'Finalizados', value: summary.ticketsFinalizados, tone: 'success', hint: 'Atenciones completadas en el turno actual' },
-    { title: 'No-show', value: summary.ticketsNoShow, tone: 'danger', hint: 'Pacientes que no acudieron al llamado' },
-    { title: 'Especiales hoy', value: summary.ticketsEspecialesHoy, tone: 'success', hint: 'Tickets con prioridad especial autorizada' },
+    { title: 'En espera', value: summary.ticketsEnEspera, tone: 'info' },
+    { title: 'Llamados', value: summary.ticketsLlamados, tone: 'warning' },
+    { title: 'En atención', value: summary.ticketsEnAtencion, tone: 'info' },
+    { title: 'Finalizados', value: summary.ticketsFinalizados, tone: 'success' },
+    { title: 'No-show', value: summary.ticketsNoShow, tone: 'danger' },
+    { title: 'Especiales', value: summary.ticketsEspecialesHoy, tone: 'success' },
   ];
 
   return (
@@ -21,7 +21,6 @@ export function OverviewCards({ summary }: { summary: ReceptionOperationalSummar
             <Badge className={`badge-${item.tone}`}>{item.tone.toUpperCase()}</Badge>
           </div>
           <strong className="stat-value">{item.value}</strong>
-          <p className="muted-text">{item.hint}</p>
         </Card>
       ))}
     </div>

@@ -17,10 +17,12 @@ export function Button({
   className = '',
   children,
   disabled,
+  type = 'button',
   ...props
 }: ButtonProps) {
   return (
     <button
+      type={type}
       className={`btn btn-${variant} ${fullWidth ? 'btn-block' : ''} ${className}`.trim()}
       disabled={disabled || loading}
       {...props}

@@ -43,16 +43,4 @@ export class ClinicaTheme {
       ['--container-width' as string]: '1440px',
     };
   }
-
-  static badgeTone(type: 'success' | 'warning' | 'danger' | 'info' | 'neutral'): CSSProperties {
-    const tones: Record<string, CSSProperties> = {
-      success: { backgroundColor: 'rgba(22, 163, 74, 0.10)', color: ClinicaPalette.success },
-      warning: { backgroundColor: 'rgba(245, 158, 11, 0.12)', color: ClinicaPalette.warning },
-      danger: { backgroundColor: 'rgba(220, 38, 38, 0.10)', color: ClinicaPalette.danger },
-      info: { backgroundColor: 'rgba(59, 130, 246, 0.10)', color: ClinicaPalette.info },
-      neutral: { backgroundColor: 'rgba(107, 114, 128, 0.10)', color: ClinicaPalette.textMuted },
-    };
-
-    return tones[type];
-  }
 }

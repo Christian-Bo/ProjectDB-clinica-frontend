@@ -20,28 +20,38 @@ export function CallNextPanel({
   onFinish: (ticketId: number) => void;
   onProcessNoShow: () => void;
 }) {
+  const stateTone =
+    currentTicket?.estado?.toLowerCase().includes('final') ? 'success' : 'warning';
+
   return (
     <Card className="stack-lg">
       <div className="section-heading-row">
         <div>
-          <span className="eyebrow">Flujo operacional</span>
-          <h3>Llamado y atencion del ticket</h3>
+          <span className="eyebrow">Atención</span>
+          <h3>Control del turno</h3>
         </div>
-        <Badge className="badge-info">Atomicidad y fairness</Badge>
+        <Badge className="badge-info">Cola activa</Badge>
       </div>
 
-      <p className="muted-text">
-        Desde aqui puedes llamar el siguiente ticket, pasarlo a atencion, finalizarlo o ejecutar el proceso de no-show.
-        Todo se conecta a los stored procedures del backend ya desplegados.
-      </p>
-
       <div className="button-row-wrap">
-        <Button loading={loading} onClick={onCallNext}>Llamar siguiente ticket</Button>
-        <Button variant="secondary" loading={loading} disabled={!currentTicket} onClick={() => currentTicket && onMarkInAttention(currentTicket.ticketId)}>
-          Marcar en atencion
+        <Button loading={loading} onClick={onCallNext}>
+          Llamar siguiente
         </Button>
-        <Button variant="ghost" loading={loading} disabled={!currentTicket} onClick={() => currentTicket && onFinish(currentTicket.ticketId)}>
-          Finalizar ticket
+        <Button
+          variant="secondary"
+          loading={loading}
+          disabled={!currentTicket}
+          onClick={() => currentTicket && onMarkInAttention(currentTicket.ticketId)}
+        >
+          Marcar en atención
+        </Button>
+        <Button
+          variant="ghost"
+          loading={loading}
+          disabled={!currentTicket}
+          onClick={() => currentTicket && onFinish(currentTicket.ticketId)}
+        >
+          Finalizar
         </Button>
         <Button variant="danger" loading={loading} onClick={onProcessNoShow}>
           Procesar no-show
@@ -50,14 +60,16 @@ export function CallNextPanel({
 
       <div className="highlight-panel">
         <div>
-          <span className="muted-text">Ultimo ticket operativo</span>
+          <span className="muted-text">Ticket actual</span>
           <strong className="hero-ticket">{currentTicket?.numeroTicket ?? '—'}</strong>
-          <p>{currentTicket ? `${currentTicket.pacienteNombre} · ${currentTicket.servicioNombre}` : 'Todavia no has generado o llamado un ticket en esta sesion.'}</p>
+          <p>
+            {currentTicket
+              ? `${currentTicket.pacienteNombre} · ${currentTicket.servicioNombre}`
+              : 'Aún no hay ticket seleccionado.'}
+          </p>
         </div>
         <div className="stack-sm">
-          <Badge className={`badge-${currentTicket?.estado?.toLowerCase().includes('final') ? 'success' : 'warning'}`}>
-            {currentTicket?.estado ?? 'SIN TICKET'}
-          </Badge>
+          <Badge className={`badge-${stateTone}`}>{currentTicket?.estado ?? 'SIN TICKET'}</Badge>
           <Badge className={currentTicket?.esEspecial ? 'badge-danger' : 'badge-info'}>
             {currentTicket?.prioridad ?? 'NORMAL'}
           </Badge>

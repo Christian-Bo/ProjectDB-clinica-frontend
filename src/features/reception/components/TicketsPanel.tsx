@@ -34,14 +34,16 @@ export function TicketsPanel({
           <input
             value={reference}
             onChange={(event) => setReference(event.target.value)}
-            placeholder="Busca por numero de ticket o id..."
+            placeholder="Busca por número o id"
           />
-          <Button variant="secondary" onClick={() => onFind(reference)}>Buscar</Button>
+          <Button variant="secondary" onClick={() => onFind(reference)}>
+            Buscar
+          </Button>
         </div>
 
         <div className="tickets-list">
           {tickets.length === 0 ? (
-            <EmptyState title="Sin tickets aun" description="Genera o llama tickets para verlos reflejados aqui con detalle enriquecido." />
+            <EmptyState title="Sin tickets" description="Los tickets recientes aparecerán aquí." />
           ) : (
             tickets.map((ticket) => (
               <button
@@ -67,20 +69,20 @@ export function TicketsPanel({
       <Card className="stack-lg">
         <div>
           <span className="eyebrow">Detalle</span>
-          <h3>Vista profesional del ticket</h3>
+          <h3>Ticket seleccionado</h3>
         </div>
 
         {!selectedTicket ? (
-          <EmptyState title="Selecciona un ticket" description="Cuando elijas un registro, aqui veras nombres, contexto medico y tiempos operativos sin exponer ids innecesarios." />
+          <EmptyState title="Selecciona un ticket" description="Aquí verás el detalle del turno." />
         ) : (
           <div className="detail-grid">
-            <div className="detail-item"><span>Numero</span><strong>{selectedTicket.numeroTicket}</strong></div>
+            <div className="detail-item"><span>Número</span><strong>{selectedTicket.numeroTicket}</strong></div>
             <div className="detail-item"><span>Estado</span><strong>{selectedTicket.estado}</strong></div>
             <div className="detail-item"><span>Prioridad</span><strong>{selectedTicket.prioridad}</strong></div>
             <div className="detail-item"><span>Paciente</span><strong>{selectedTicket.pacienteNombre}</strong></div>
             <div className="detail-item"><span>Sede</span><strong>{selectedTicket.sedeNombre}</strong></div>
             <div className="detail-item"><span>Servicio</span><strong>{selectedTicket.servicioNombre}</strong></div>
-            <div className="detail-item"><span>Medico</span><strong>{selectedTicket.medicoNombre ?? 'Sin asignacion'}</strong></div>
+            <div className="detail-item"><span>Médico</span><strong>{selectedTicket.medicoNombre ?? 'Sin asignación'}</strong></div>
             <div className="detail-item"><span>Consultorio</span><strong>{selectedTicket.consultorioNombre ?? 'Pendiente'}</strong></div>
             <div className="detail-item"><span>Generado</span><strong>{new Date(selectedTicket.fechaGeneracion).toLocaleString()}</strong></div>
             <div className="detail-item"><span>Llamados</span><strong>{selectedTicket.contadorLlamados}</strong></div>

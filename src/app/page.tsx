@@ -26,30 +26,25 @@ export default function HomePage() {
   }, [dashboard.filters.sedeId, dashboard.filters.servicioId, dashboard.sedes, dashboard.servicios]);
 
   return (
-<<<<<<< HEAD
-    <main>
-      <h1>Bienvenido a Clinica prueba</h1>
-    </main>
-=======
     <AppShell>
       <section className="hero-banner">
         <div>
-          <span className="eyebrow">Experiencia clinica premium</span>
-          <h1>Recepcion eficiente, clara y lista para produccion.</h1>
-          <p>
-            Este frontend consume tu backend en Railway, usa una paleta unificada reutilizable y muestra informacion
-            entendible para el usuario, priorizando nombres, contexto y acciones claras por encima de ids tecnicos.
-          </p>
+          <span className="eyebrow">Recepción clínica</span>
+          <h1>Gestión de tickets y cola</h1>
+          <p>Panel operativo para recepción, seguimiento y pantalla pública.</p>
           <div className="button-row-wrap">
             <Button onClick={() => setModalOpen(true)}>Generar ticket</Button>
-            <Button variant="secondary" onClick={() => dashboard.refreshDashboard()}>Actualizar dashboard</Button>
+            <Button variant="secondary" onClick={() => void dashboard.refreshDashboard()}>
+              Actualizar
+            </Button>
           </div>
         </div>
+
         <div className="hero-card side-highlight">
-          <span className="muted-text-light">Contexto actual</span>
+          <span className="muted-text-light">Contexto</span>
           <strong>{activeFiltersLabel}</strong>
-          <p>La interfaz trabaja sobre el contexto seleccionado y actualiza automaticamente resumen, cola y tickets.</p>
-          <Badge className="badge-success">Conectado a Railway</Badge>
+          <p>Selecciona sede y servicio para operar sobre la cola actual.</p>
+          <Badge className="badge-success">Activo</Badge>
         </div>
       </section>
 
@@ -66,10 +61,15 @@ export default function HomePage() {
       <div className="content-grid-2 align-start">
         <CallNextPanel
           currentTicket={dashboard.selectedTicket}
-          loading={dashboard.loading.callNext || dashboard.loading.markInAttention || dashboard.loading.finishTicket || dashboard.loading.processNoShow}
+          loading={
+            dashboard.loading.callNext ||
+            dashboard.loading.markInAttention ||
+            dashboard.loading.finishTicket ||
+            dashboard.loading.processNoShow
+          }
           onCallNext={() => void dashboard.callNext()}
           onMarkInAttention={(ticketId) => void dashboard.markInAttention(ticketId)}
-          onFinish={(ticketId) => void dashboard.finishTicket(ticketId, 'Finalizado desde panel operativo')}
+          onFinish={(ticketId) => void dashboard.finishTicket(ticketId, 'Finalizado desde panel')}
           onProcessNoShow={() => void dashboard.processNoShow()}
         />
 
@@ -79,21 +79,41 @@ export default function HomePage() {
       <Card className="stack-lg">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">UX inteligente</span>
-            <h3>Seleccion del paciente y cita mediante listas amigables</h3>
+            <span className="eyebrow">Selección</span>
+            <h3>Paciente y cita</h3>
           </div>
-          <Button variant="secondary" onClick={() => setModalOpen(true)}>Abrir selector</Button>
+          <Button variant="secondary" onClick={() => setModalOpen(true)}>
+            Abrir selector
+          </Button>
         </div>
+
         <div className="selection-summary-grid">
           <div className="summary-chip-card">
-            <span className="muted-text">Paciente seleccionado</span>
-            <strong>{dashboard.selectedPatient?.label ?? dashboard.selectedAppointment?.pacienteNombre ?? 'Ninguno todavia'}</strong>
-            <p>Las listas muestran nombres y contexto, sin obligar al recepcionista a memorizar ids.</p>
+            <span className="muted-text">Paciente</span>
+            <strong>
+              {dashboard.selectedPatient?.label ??
+                dashboard.selectedAppointment?.pacienteNombre ??
+                'Ninguno'}
+            </strong>
           </div>
+
           <div className="summary-chip-card">
-            <span className="muted-text">Cita seleccionada</span>
-            <strong>{dashboard.selectedAppointment?.label ?? 'Sin cita asociada'}</strong>
-            <p>Si el paciente ya venia confirmado, el ticket puede originarse desde su cita con un solo clic.</p>
+            <span className="muted-text">Cita</span>
+            <strong>{dashboard.selectedAppointment?.label ?? 'Sin cita seleccionada'}</strong>
+          </div>
+
+          <div className="summary-chip-card">
+            <span className="muted-text">Sede actual</span>
+            <strong>
+              {dashboard.sedes.find((item) => item.id === dashboard.filters.sedeId)?.label ?? 'Sin sede'}
+            </strong>
+          </div>
+
+          <div className="summary-chip-card">
+            <span className="muted-text">Servicio actual</span>
+            <strong>
+              {dashboard.servicios.find((item) => item.id === dashboard.filters.servicioId)?.label ?? 'Sin servicio'}
+            </strong>
           </div>
         </div>
       </Card>
@@ -108,7 +128,17 @@ export default function HomePage() {
       <GenerateTicketModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        isLoading={dashboard.loading.generateTicket || dashboard.loading.generateSpecialTicket || dashboard.loading.patients || dashboard.loading.appointments}
+        isLoading={
+          dashboard.loading.generateTicket ||
+          dashboard.loading.generateSpecialTicket ||
+          dashboard.loading.patients ||
+          dashboard.loading.appointments ||
+          dashboard.loading.catalogosDependientes
+        }
+        filters={dashboard.filters}
+        setFilters={dashboard.setFilters}
+        sedes={dashboard.sedes}
+        servicios={dashboard.servicios}
         priorityOptions={dashboard.prioridades}
         patientItems={dashboard.patients}
         appointmentItems={dashboard.appointments}
@@ -116,12 +146,11 @@ export default function HomePage() {
         selectedAppointment={dashboard.selectedAppointment}
         onSelectPatient={dashboard.setSelectedPatient}
         onSelectAppointment={dashboard.setSelectedAppointment}
-        onSearchPatients={(text) => { void dashboard.searchPatients(text); }}
-        onSearchAppointments={(text) => { void dashboard.searchAppointments(text); }}
+        onLoadPatients={dashboard.loadPatients}
+        onLoadAppointments={dashboard.loadAppointments}
         onGenerate={(priority) => dashboard.generateNormalTicket(priority)}
         onGenerateSpecial={(reason) => dashboard.generateSpecialTicket(reason)}
       />
     </AppShell>
->>>>>>> cf2e740 (configuración global de paleta de colores y tost globales)
   );
 }

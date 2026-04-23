@@ -31,15 +31,15 @@ const toastClassByType: Record<ToastType, string> = {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
-  const notify = useCallback((toast: Omit<ToastItem, 'id'>) => {
-    const id = crypto.randomUUID();
-    const next = { ...toast, id };
-    setItems((current) => [...current, next]);
-
-    window.setTimeout(() => {
-      setItems((current) => current.filter((item) => item.id !== id));
-    }, 4200);
+  const remove = useCallback((id: string) => {
+    setItems((current) => current.filter((item) => item.id !== id));
   }, []);
+
+  const notify = useCallback((toast: Omit<ToastItem, 'id'>) => {
+    const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+    setItems((current) => [...current, { ...toast, id }]);
+    window.setTimeout(() => remove(id), 4200);
+  }, [remove]);
 
   const value = useMemo<ToastContextType>(() => ({
     notify,
@@ -57,11 +57,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div key={item.id} className={toastClassByType[item.type]}>
             <div className="toast-title-row">
               <strong>{item.title}</strong>
-              <button
-                className="toast-close"
-                onClick={() => setItems((current) => current.filter((toast) => toast.id !== item.id))}
-                aria-label="Cerrar notificacion"
-              >
+              <button className="toast-close" onClick={() => remove(item.id)} aria-label="Cerrar notificacion">
                 ×
               </button>
             </div>
@@ -78,6 +74,5 @@ export function useToast() {
   if (!context) {
     throw new Error('useToast debe usarse dentro de ToastProvider.');
   }
-
   return context;
 }

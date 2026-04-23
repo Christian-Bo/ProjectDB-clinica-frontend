@@ -18,7 +18,10 @@ function SelectBlock({
   return (
     <label className="field-group">
       <span>{label}</span>
-      <select value={value ?? ''} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}>
+      <select
+        value={value ?? ''}
+        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : undefined)}
+      >
         <option value="">Selecciona...</option>
         {options.map((option) => (
           <option key={option.id} value={option.id}>
@@ -46,39 +49,62 @@ export function FiltersBar({
   return (
     <Card className="toolbar-card">
       <div>
-        <span className="eyebrow">Contexto operativo</span>
-        <h3>Seleccion de sede, servicio y estacion</h3>
-        <p className="muted-text">
-          Todos los formularios usan nombres amigables y listados descriptivos. Internamente se guardan los ids,
-          pero el usuario nunca trabaja con numeros aislados.
-        </p>
+        <span className="eyebrow">Contexto</span>
+        <h3>Sede, servicio y estación</h3>
       </div>
+
       <div className="filters-grid">
         <SelectBlock
           label="Sede"
           value={filters.sedeId}
           options={sedes}
-          onChange={(value) => setFilters((current) => ({ ...current, sedeId: value, servicioId: undefined, estacionId: undefined }))}
+          onChange={(value) =>
+            setFilters((current) => ({
+              ...current,
+              sedeId: value,
+              servicioId: undefined,
+              estacionId: undefined,
+            }))
+          }
         />
+
         <SelectBlock
           label="Servicio"
           value={filters.servicioId}
           options={servicios}
-          onChange={(value) => setFilters((current) => ({ ...current, servicioId: value }))}
+          onChange={(value) =>
+            setFilters((current) => ({
+              ...current,
+              servicioId: value,
+            }))
+          }
         />
+
         <SelectBlock
-          label="Estacion"
+          label="Estación"
           value={filters.estacionId}
           options={estaciones}
-          onChange={(value) => setFilters((current) => ({ ...current, estacionId: value }))}
+          onChange={(value) =>
+            setFilters((current) => ({
+              ...current,
+              estacionId: value,
+            }))
+          }
         />
+
         <label className="field-group">
           <span>Usuario operativo</span>
           <input
             type="number"
             min="1"
-            value={filters.usuarioId}
-            onChange={(event) => setFilters((current) => ({ ...current, usuarioId: Number(event.target.value) || 1 }))}
+            value={filters.usuarioId ?? ''}
+            placeholder="Opcional"
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                usuarioId: event.target.value ? Number(event.target.value) : undefined,
+              }))
+            }
           />
         </label>
       </div>

@@ -4,5 +4,5 @@ export type DashboardFilters = {
   sedeId?: number;
   servicioId?: number;
   estacionId?: number;
-  usuarioId: number;
+  usuarioId?: number;
 };
