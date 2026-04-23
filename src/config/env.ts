@@ -1,11 +1,14 @@
-const required = (value: string | undefined, name: string): string => {
-  if (!value) {
-    throw new Error(`Falta la variable de entorno ${name}`);
-  }
-  return value;
+const toPositiveNumber = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const normalizeBaseUrl = (value: string | undefined): string => {
+  const raw = (value ?? 'http://localhost:8080').trim();
+  return raw.replace(/\/+$/, '');
 };
 
 export const env = {
-  apiUrl: required(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL'),
-  apiTimeoutMs: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS ?? 15000),
+  apiUrl: normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL),
+  apiTimeoutMs: toPositiveNumber(process.env.NEXT_PUBLIC_API_TIMEOUT_MS, 15000),
 };
