@@ -1,7 +1,5 @@
 import { env } from '@/config/env';
-
-// Cliente específico para el módulo de pacientes y citas
-// Maneja el contrato { success, message, data } del backend
+import { session } from '@/lib/auth/session';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -20,6 +18,11 @@ async function request<T>(
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
+
+  const token = session.getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   if (critical) {
     headers['Idempotency-Key'] = crypto.randomUUID();

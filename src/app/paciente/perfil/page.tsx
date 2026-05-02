@@ -5,8 +5,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { Card } from '@/shared/components/ui/Card';
 import { patientsApi } from '@/lib/api/patients';
 import { useToast } from '@/shared/components/providers/ToastProvider';
-
-const PACIENTE_ID_DEMO = 5;
+import { usePacienteSession } from '@/lib/auth/useSession';
 
 interface PerfilPaciente {
   pacienteId: number;
@@ -27,74 +26,74 @@ interface PerfilPaciente {
   estado: string;
 }
 
+function calcularPorcentaje(form: Partial<PerfilPaciente>): number {
+  const campos = ['tipoDocumento', 'numeroDocumento', 'fechaNacimiento', 'genero', 'nacionalidad', 'ocupacion', 'direccionResidencia', 'tipoSangre', 'contactoEmergenciaNombre', 'contactoEmergenciaTelefono'];
+  const llenos = campos.filter((c) => !!(form as Record<string, unknown>)[c]);
+  return Math.round((llenos.length / campos.length) * 100);
+}
+
 export default function PerfilPage() {
   const toast = useToast();
+  const { pacienteId, nombreCompleto, cargando: cargandoSession } = usePacienteSession();
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [form, setForm] = useState<Partial<PerfilPaciente>>({});
 
   const cargarPerfil = useCallback(async () => {
+    if (!pacienteId) return;
     setLoading(true);
-    const res = await patientsApi.get<PerfilPaciente>(`/api/pacientes/${PACIENTE_ID_DEMO}`);
-    if (res.success && res.data) {
-      setForm(res.data);
-    } else {
-      toast.error('Error', 'No se pudo cargar el perfil.');
-    }
+    const res = await patientsApi.get<PerfilPaciente>(`/api/pacientes/${pacienteId}`);
+    if (res.success && res.data) setForm(res.data);
+    else toast.error('Error', 'No se pudo cargar el perfil.');
     setLoading(false);
-  }, [toast]);
+  }, [toast, pacienteId]);
 
-  useEffect(() => {
-    void cargarPerfil();
-  }, [cargarPerfil]);
+  useEffect(() => { if (pacienteId) void cargarPerfil(); }, [cargarPerfil, pacienteId]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
   async function handleGuardar() {
     setGuardando(true);
-    const res = await patientsApi.put(`/api/pacientes/${PACIENTE_ID_DEMO}`, {
-      pacienteId: PACIENTE_ID_DEMO,
-      tipoDocumento: form.tipoDocumento,
-      numeroDocumento: form.numeroDocumento,
-      fechaNacimiento: form.fechaNacimiento,
-      genero: form.genero,
-      ocupacion: form.ocupacion,
-      nacionalidad: form.nacionalidad,
-      direccionResidencia: form.direccionResidencia,
-      tipoSangre: form.tipoSangre,
-      notasMedicas: form.notasMedicas,
-      esDiscapacitado: form.esDiscapacitado ?? false,
-      contactoEmergenciaNombre: form.contactoEmergenciaNombre,
-      contactoEmergenciaTelefono: form.contactoEmergenciaTelefono,
-      contactoEmergenciaRelacion: form.contactoEmergenciaRelacion,
+    const res = await patientsApi.put(`/api/pacientes/${pacienteId}`, {
+      pacienteId, ...form, esDiscapacitado: form.esDiscapacitado ?? false,
     });
-
-    if (res.success) {
-      toast.success('Perfil actualizado', 'Tus datos fueron guardados correctamente.');
-    } else {
-      toast.error('Error', res.message || 'No se pudo guardar el perfil.');
-    }
+    if (res.success) toast.success('Perfil actualizado', 'Tus datos fueron guardados correctamente.');
+    else toast.error('Error', res.message || 'No se pudo guardar el perfil.');
     setGuardando(false);
   }
 
-  if (loading) {
-    return <div className="loading-box"><p className="muted-text">Cargando perfil...</p></div>;
-  }
+  if (cargandoSession || loading) return <div className="loading-box"><p className="muted-text">Cargando perfil...</p></div>;
+
+  const porcentaje = calcularPorcentaje(form);
+  const iniciales = nombreCompleto.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div className="stack-lg">
       <section className="hero-banner">
-        <div>
-          <span className="eyebrow">Portal Paciente</span>
-          <h1>Mi Perfil</h1>
-          <p>Expediente: <strong>{form.numeroExpediente}</strong></p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{
+            width: '72px', height: '72px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)', border: '3px solid rgba(255,255,255,0.4)',
+            display: 'grid', placeItems: 'center',
+            fontSize: '1.6rem', fontWeight: 900, color: 'white', flexShrink: 0
+          }}>{iniciales}</div>
+          <div>
+            <span className="eyebrow light">Portal Paciente</span>
+            <h1 style={{ margin: '4px 0' }}>Mi Perfil</h1>
+            <p style={{ margin: 0, opacity: 0.85 }}>Expediente: <strong>{form.numeroExpediente}</strong></p>
+          </div>
         </div>
         <div className="hero-card side-highlight">
-          <span className="muted-text-light">Estado</span>
-          <strong>{form.estado}</strong>
-          <p>Mantén tus datos actualizados para agilizar tus citas.</p>
+          <span className="muted-text-light">Perfil completado</span>
+          <strong style={{ fontSize: '2rem' }}>{porcentaje}%</strong>
+          <div style={{ height: '8px', background: 'rgba(255,255,255,0.2)', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${porcentaje}%`, background: porcentaje === 100 ? '#16A34A' : 'var(--color-secondary)', borderRadius: '999px', transition: 'width 0.5s ease' }} />
+          </div>
+          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.8 }}>
+            {porcentaje === 100 ? '¡Perfil completo!' : 'Completa tus datos para agilizar tus citas'}
+          </p>
         </div>
       </section>
 
@@ -115,12 +114,7 @@ export default function PerfilPage() {
           </div>
           <div className="field-group">
             <span>Fecha de nacimiento</span>
-            <input
-              type="date"
-              name="fechaNacimiento"
-              value={form.fechaNacimiento ? form.fechaNacimiento.split('T')[0] : ''}
-              onChange={handleChange}
-            />
+            <input type="date" name="fechaNacimiento" value={form.fechaNacimiento ? form.fechaNacimiento.split('T')[0] : ''} onChange={handleChange} />
           </div>
           <div className="field-group">
             <span>Género</span>
@@ -137,40 +131,21 @@ export default function PerfilPage() {
             <span>Tipo de sangre</span>
             <select name="tipoSangre" value={form.tipoSangre ?? ''} onChange={handleChange}>
               <option value="">No especificado</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
+              {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
         </div>
-
         <div className="content-grid-2">
           <div className="field-group">
             <span>Ocupación</span>
             <select name="ocupacion" value={form.ocupacion ?? ''} onChange={handleChange}>
               <option value="">No especificada</option>
-              <option value="Estudiante">Estudiante</option>
-              <option value="Empleado">Empleado</option>
-              <option value="Independiente">Independiente</option>
-              <option value="Ama de casa">Ama de casa</option>
-              <option value="Jubilado">Jubilado</option>
-              <option value="Otro">Otro</option>
+              {['Estudiante','Empleado','Independiente','Ama de casa','Jubilado','Otro'].map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div className="field-group">
             <span>Dirección de residencia</span>
-            <input
-              type="text"
-              name="direccionResidencia"
-              value={form.direccionResidencia ?? ''}
-              onChange={handleChange}
-              placeholder="Tu dirección"
-            />
+            <input type="text" name="direccionResidencia" value={form.direccionResidencia ?? ''} onChange={handleChange} placeholder="Tu dirección" />
           </div>
         </div>
       </Card>
@@ -181,71 +156,25 @@ export default function PerfilPage() {
         <div className="filters-grid">
           <div className="field-group">
             <span>Nombre</span>
-            <input
-              type="text"
-              name="contactoEmergenciaNombre"
-              value={form.contactoEmergenciaNombre ?? ''}
-              onChange={handleChange}
-              placeholder="Nombre completo"
-            />
+            <input type="text" name="contactoEmergenciaNombre" value={form.contactoEmergenciaNombre ?? ''} onChange={handleChange} placeholder="Nombre completo" />
           </div>
-
           <div className="field-group">
             <span>Teléfono</span>
-            <div style={{
-              display: 'flex',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              background: 'white'
-            }}>
-              <span style={{
-                padding: '14px 12px',
-                background: 'var(--color-primary)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                whiteSpace: 'nowrap'
-              }}>+502</span>
-              <input
-                type="tel"
-                name="contactoEmergenciaTelefono"
-                value={form.contactoEmergenciaTelefono ?? ''}
-                onChange={handleChange}
-                placeholder="55557777"
-                maxLength={8}
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  padding: '14px 16px',
-                  width: '100%',
-                  font: 'inherit'
-                }}
-              />
+            <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'white' }}>
+              <span style={{ padding: '14px 12px', background: 'var(--color-primary)', color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>+502</span>
+              <input type="tel" name="contactoEmergenciaTelefono" value={form.contactoEmergenciaTelefono ?? ''} onChange={handleChange} placeholder="55557777" maxLength={8} style={{ border: 'none', outline: 'none', padding: '14px 16px', width: '100%', font: 'inherit' }} />
             </div>
           </div>
-
           <div className="field-group">
             <span>Relación</span>
             <select name="contactoEmergenciaRelacion" value={form.contactoEmergenciaRelacion ?? ''} onChange={handleChange}>
               <option value="">Selecciona...</option>
-              <option value="Madre">Madre</option>
-              <option value="Padre">Padre</option>
-              <option value="Hermano/a">Hermano/a</option>
-              <option value="Esposo/a">Esposo/a</option>
-              <option value="Hijo/a">Hijo/a</option>
-              <option value="Amigo/a">Amigo/a</option>
-              <option value="Otro">Otro</option>
+              {['Madre','Padre','Hermano/a','Esposo/a','Hijo/a','Amigo/a','Otro'].map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
-
           <div className="field-group">
             <span>¿Es discapacitado?</span>
-            <select
-              name="esDiscapacitado"
-              value={form.esDiscapacitado ? 'true' : 'false'}
-              onChange={(e) => setForm((prev) => ({ ...prev, esDiscapacitado: e.target.value === 'true' }))}
-            >
+            <select name="esDiscapacitado" value={form.esDiscapacitado ? 'true' : 'false'} onChange={(e) => setForm((prev) => ({ ...prev, esDiscapacitado: e.target.value === 'true' }))}>
               <option value="false">No</option>
               <option value="true">Sí</option>
             </select>
@@ -254,12 +183,8 @@ export default function PerfilPage() {
       </Card>
 
       <div className="button-row-wrap">
-        <Button loading={guardando} disabled={guardando} onClick={() => void handleGuardar()}>
-          Guardar cambios
-        </Button>
-        <Button variant="ghost" onClick={() => window.location.href = '/paciente'}>
-          Cancelar
-        </Button>
+        <Button loading={guardando} disabled={guardando} onClick={() => void handleGuardar()}>Guardar cambios</Button>
+        <Button variant="ghost" onClick={() => window.location.href = '/paciente'}>Cancelar</Button>
       </div>
     </div>
   );

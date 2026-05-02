@@ -1,17 +1,22 @@
+'use client';
+
 import Link from 'next/link';
+import { session } from '@/lib/auth/session';
 
 const navItems = [
   { label: 'Inicio', hint: 'Dashboard', href: '/paciente' },
   { label: 'Mis Citas', hint: 'Historial y estados', href: '/paciente/citas' },
   { label: 'Reservar Cita', hint: 'Nueva cita', href: '/paciente/citas/nueva' },
-  { label: 'Mi Perfil', hint: 'Datos personales', href: '/paciente/perfil' }
+  { label: 'Mis Alergias', hint: 'Gestión de alergias', href: '/paciente/alergias' },
+  { label: 'Mi Perfil', hint: 'Datos personales', href: '/paciente/perfil' },
 ];
 
-export default function PacienteLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function PacienteLayout({ children }: { children: React.ReactNode }) {
+  function handleLogout() {
+    session.clear();
+    window.location.href = '/login';
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -31,6 +36,22 @@ export default function PacienteLayout({
             </Link>
           ))}
         </nav>
+
+        <div style={{ marginTop: 'auto' }}>
+          <button
+            onClick={handleLogout}
+            className="sidebar-link"
+            style={{
+              width: '100%', textAlign: 'left', cursor: 'pointer',
+              background: 'rgba(220, 38, 38, 0.15)',
+              border: '1px solid rgba(220, 38, 38, 0.3)',
+              color: 'white'
+            }}
+          >
+            <span>Cerrar sesión</span>
+            <small>Salir del portal</small>
+          </button>
+        </div>
       </aside>
 
       <div className="content-shell">
