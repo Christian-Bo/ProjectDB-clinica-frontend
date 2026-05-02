@@ -17,39 +17,66 @@ import { Card } from '@/shared/components/ui/Card';
 export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const dashboard = useDashboardData();
-  const queue = useQueueDisplay(dashboard.filters.sedeId, dashboard.filters.servicioId, true);
+  const queue     = useQueueDisplay(
+    dashboard.filters.sedeId,
+    dashboard.filters.servicioId,
+    true,
+  );
 
   const activeFiltersLabel = useMemo(() => {
-    const sede = dashboard.sedes.find((item) => item.id === dashboard.filters.sedeId)?.label;
-    const servicio = dashboard.servicios.find((item) => item.id === dashboard.filters.servicioId)?.label;
-    return [sede, servicio].filter(Boolean).join(' · ') || 'Selecciona sede y servicio';
-  }, [dashboard.filters.sedeId, dashboard.filters.servicioId, dashboard.sedes, dashboard.servicios]);
+    const sede     = dashboard.sedes.find((s) => s.id === dashboard.filters.sedeId)?.label;
+    const servicio = dashboard.servicios.find((s) => s.id === dashboard.filters.servicioId)?.label;
+    return [sede, servicio].filter(Boolean).join(' · ') || 'Sin sede/servicio seleccionados';
+  }, [dashboard.filters, dashboard.sedes, dashboard.servicios]);
+
+  const isOperating = Boolean(dashboard.filters.sedeId && dashboard.filters.servicioId);
 
   return (
     <AppShell>
-      <section className="hero-banner">
-        <div>
-          <span className="eyebrow">Recepción clínica</span>
-          <h1>Gestión de tickets y cola</h1>
-          <p>Panel operativo para recepción, seguimiento y pantalla pública.</p>
+      {/* Hero banner */}
+      <section className="hero-banner" aria-label="Panel principal de recepción">
+        <div style={{ display: 'grid', gap: '14px', alignContent: 'center' }}>
+          <span className="eyebrow light">Recepción clínica</span>
+          <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Gestión de tickets y cola</h1>
+          <p style={{ margin: 0, maxWidth: '420px' }}>
+            Panel operativo para generar tickets, controlar la cola de atención y gestionar la pantalla pública de turnos.
+          </p>
           <div className="button-row-wrap">
-            <Button onClick={() => setModalOpen(true)}>Generar ticket</Button>
-            <Button variant="secondary" onClick={() => void dashboard.refreshDashboard()}>
-              Actualizar
+            <Button
+              onClick={() => setModalOpen(true)}
+              disabled={!isOperating}
+              title={!isOperating ? 'Selecciona sede y servicio primero' : 'Generar un nuevo ticket de atención'}
+            >
+              🎫 Generar ticket
+            </Button>
+            <Button
+              variant="ghost"
+              style={{ background: 'rgba(255,255,255,0.14)', color: '#ffffff', borderColor: 'rgba(255,255,255,0.25)' }}
+              onClick={() => void dashboard.refreshDashboard()}
+            >
+              🔄 Actualizar datos
             </Button>
           </div>
         </div>
 
-        <div className="hero-card side-highlight">
-          <span className="muted-text-light">Contexto</span>
-          <strong>{activeFiltersLabel}</strong>
-          <p>Selecciona sede y servicio para operar sobre la cola actual.</p>
-          <Badge className="badge-success">Activo</Badge>
+        <div className="hero-card side-highlight" aria-label="Contexto operativo actual">
+          <span className="eyebrow light">Contexto activo</span>
+          <strong style={{ fontSize: '1.05rem' }}>{activeFiltersLabel}</strong>
+          <p>Selecciona sede y servicio para operar sobre la cola de atención.</p>
+          <div>
+            {isOperating ? (
+              <Badge className="badge-success">✅ Operativo</Badge>
+            ) : (
+              <Badge className="badge-warning">⚠️ Configuración pendiente</Badge>
+            )}
+          </div>
         </div>
       </section>
 
+      {/* Resumen de métricas */}
       <OverviewCards summary={dashboard.summary} />
 
+      {/* Filtros */}
       <FiltersBar
         filters={dashboard.filters}
         setFilters={dashboard.setFilters}
@@ -58,81 +85,83 @@ export default function HomePage() {
         estaciones={dashboard.estaciones}
       />
 
+      {/* Panel de control + Cola */}
       <div className="content-grid-2 align-start">
         <CallNextPanel
           currentTicket={dashboard.selectedTicket}
           loading={
-            dashboard.loading.callNext ||
+            dashboard.loading.callNext        ||
             dashboard.loading.markInAttention ||
-            dashboard.loading.finishTicket ||
+            dashboard.loading.finishTicket    ||
             dashboard.loading.processNoShow
           }
-          onCallNext={() => void dashboard.callNext()}
-          onMarkInAttention={(ticketId) => void dashboard.markInAttention(ticketId)}
-          onFinish={(ticketId) => void dashboard.finishTicket(ticketId, 'Finalizado desde panel')}
-          onProcessNoShow={() => void dashboard.processNoShow()}
+          onCallNext={()              => void dashboard.callNext()}
+          onMarkInAttention={(id)     => void dashboard.markInAttention(id)}
+          onFinish={(id)              => void dashboard.finishTicket(id, 'Finalizado desde panel')}
+          onProcessNoShow={()         => void dashboard.processNoShow()}
         />
 
         <QueueDisplayPanel queue={queue.queue} error={queue.error} />
       </div>
 
+      {/* Selección de paciente/cita */}
       <Card className="stack-lg">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow">Selección</span>
-            <h3>Paciente y cita</h3>
+            <span className="eyebrow">Selección activa</span>
+            <h3>Paciente y cita vinculada</h3>
           </div>
           <Button variant="secondary" onClick={() => setModalOpen(true)}>
-            Abrir selector
+            🎫 Generar ticket
           </Button>
         </div>
 
         <div className="selection-summary-grid">
-          <div className="summary-chip-card">
-            <span className="muted-text">Paciente</span>
-            <strong>
-              {dashboard.selectedPatient?.label ??
-                dashboard.selectedAppointment?.pacienteNombre ??
-                'Ninguno'}
-            </strong>
-          </div>
-
-          <div className="summary-chip-card">
-            <span className="muted-text">Cita</span>
-            <strong>{dashboard.selectedAppointment?.label ?? 'Sin cita seleccionada'}</strong>
-          </div>
-
-          <div className="summary-chip-card">
-            <span className="muted-text">Sede actual</span>
-            <strong>
-              {dashboard.sedes.find((item) => item.id === dashboard.filters.sedeId)?.label ?? 'Sin sede'}
-            </strong>
-          </div>
-
-          <div className="summary-chip-card">
-            <span className="muted-text">Servicio actual</span>
-            <strong>
-              {dashboard.servicios.find((item) => item.id === dashboard.filters.servicioId)?.label ?? 'Sin servicio'}
-            </strong>
-          </div>
+          {[
+            {
+              label: 'Paciente',
+              value: dashboard.selectedPatient?.label
+                  ?? dashboard.selectedAppointment?.pacienteNombre
+                  ?? 'Ninguno seleccionado',
+            },
+            {
+              label: 'Cita vinculada',
+              value: dashboard.selectedAppointment?.label ?? 'Sin cita',
+            },
+            {
+              label: 'Sede actual',
+              value: dashboard.sedes.find((s) => s.id === dashboard.filters.sedeId)?.label ?? 'Sin sede',
+            },
+            {
+              label: 'Servicio actual',
+              value: dashboard.servicios.find((s) => s.id === dashboard.filters.servicioId)?.label ?? 'Sin servicio',
+            },
+          ].map(({ label, value }) => (
+            <div key={label} className="summary-chip-card">
+              <span className="muted-text">{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
         </div>
       </Card>
 
+      {/* Lista de tickets */}
       <TicketsPanel
         tickets={dashboard.tickets}
         selectedTicket={dashboard.selectedTicket}
-        onSelect={(ticket) => dashboard.setSelectedTicket(ticket)}
-        onFind={(reference) => void dashboard.findTicket(reference)}
+        onSelect={(t) => dashboard.setSelectedTicket(t)}
+        onFind={(ref) => void dashboard.findTicket(ref)}
       />
 
+      {/* Modal */}
       <GenerateTicketModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         isLoading={
-          dashboard.loading.generateTicket ||
+          dashboard.loading.generateTicket        ||
           dashboard.loading.generateSpecialTicket ||
-          dashboard.loading.patients ||
-          dashboard.loading.appointments ||
+          dashboard.loading.patients              ||
+          dashboard.loading.appointments          ||
           dashboard.loading.catalogosDependientes
         }
         filters={dashboard.filters}
@@ -148,8 +177,8 @@ export default function HomePage() {
         onSelectAppointment={dashboard.setSelectedAppointment}
         onLoadPatients={dashboard.loadPatients}
         onLoadAppointments={dashboard.loadAppointments}
-        onGenerate={(priority) => dashboard.generateNormalTicket(priority)}
-        onGenerateSpecial={(reason) => dashboard.generateSpecialTicket(reason)}
+        onGenerate={(p) => dashboard.generateNormalTicket(p)}
+        onGenerateSpecial={(r) => dashboard.generateSpecialTicket(r)}
       />
     </AppShell>
   );

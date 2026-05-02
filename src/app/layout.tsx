@@ -4,8 +4,8 @@ import { AppProviders } from '@/shared/components/providers/AppProviders';
 import { ClinicaTheme } from '@/theme/clinicaTheme';
 
 export const metadata: Metadata = {
-  title: 'Clinica Integral | Recepcion',
-  description: 'Recepcion, tickets y pantalla publica.',
+  title: 'Clínica Integral | Recepción y Tickets',
+  description: 'Panel de recepción, gestión de tickets y pantalla pública de la cola de atención.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

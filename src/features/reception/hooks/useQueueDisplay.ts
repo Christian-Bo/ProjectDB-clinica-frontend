@@ -5,6 +5,17 @@ import { env } from '@/config/env';
 import { receptionApi } from '@/lib/api/reception';
 import type { QueueDisplayResponse } from '@/lib/api/types';
 
+const normalizeQueue = (value: QueueDisplayResponse | null | undefined): QueueDisplayResponse | null => {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    ...value,
+    proximos: Array.isArray(value.proximos) ? value.proximos : [],
+  };
+};
+
 export function useQueueDisplay(
   sedeId?: number,
   servicioId?: number,
@@ -31,11 +42,12 @@ export function useQueueDisplay(
         const response = await receptionApi.getPantallaCola(sedeId, servicioId);
 
         if (!disposed) {
-          setQueue(response.data);
+          setQueue(normalizeQueue(response.data));
           setError(null);
         }
       } catch (err) {
         if (!disposed) {
+          setQueue(null);
           setError(err instanceof Error ? err.message : 'No fue posible consultar la cola.');
         }
       } finally {
@@ -55,11 +67,12 @@ export function useQueueDisplay(
 
       try {
         eventSource = new EventSource(url.toString());
+
         eventSource.addEventListener('cola', (event) => {
           try {
             const payload = JSON.parse((event as MessageEvent).data);
             if (payload?.data) {
-              setQueue(payload.data as QueueDisplayResponse);
+              setQueue(normalizeQueue(payload.data as QueueDisplayResponse));
               setError(null);
             }
           } catch {
@@ -82,11 +95,19 @@ export function useQueueDisplay(
     return () => {
       disposed = true;
       eventSource?.close();
+
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
   }, [enableRealtime, sedeId, servicioId]);
 
-  return useMemo(() => ({ queue, isLoading, error }), [queue, isLoading, error]);
+  return useMemo(
+    () => ({
+      queue,
+      isLoading,
+      error,
+    }),
+    [queue, isLoading, error],
+  );
 }
