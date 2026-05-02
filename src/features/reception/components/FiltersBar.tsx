@@ -1,37 +1,8 @@
 'use client';
 
-import type { DashboardFilters } from '@/features/reception/models/ui';
 import type { SelectionOption } from '@/lib/api/types';
+import type { DashboardFilters } from '@/features/reception/models/ui';
 import { Card } from '@/shared/components/ui/Card';
-
-function SelectBlock({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value?: number;
-  options: SelectionOption[];
-  onChange: (value?: number) => void;
-}) {
-  return (
-    <label className="field-group">
-      <span>{label}</span>
-      <select
-        value={value ?? ''}
-        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : undefined)}
-      >
-        <option value="">Selecciona...</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.label || option.nombre}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 export function FiltersBar({
   filters,
@@ -47,67 +18,98 @@ export function FiltersBar({
   estaciones: SelectionOption[];
 }) {
   return (
-    <Card className="toolbar-card">
-      <div>
-        <span className="eyebrow">Contexto</span>
-        <h3>Sede, servicio y estación</h3>
+    <Card>
+      <div className="section-heading-row" style={{ marginBottom: '14px' }}>
+        <div>
+          <span className="eyebrow">Contexto operativo</span>
+          <h3 style={{ marginTop: '2px' }}>Filtros de sesión</h3>
+        </div>
+        <span className="muted-text" style={{ fontSize: '0.82rem', alignSelf: 'flex-end' }}>
+          Los filtros aplican a todas las operaciones de la sesión
+        </span>
       </div>
 
       <div className="filters-grid">
-        <SelectBlock
-          label="Sede"
-          value={filters.sedeId}
-          options={sedes}
-          onChange={(value) =>
-            setFilters((current) => ({
-              ...current,
-              sedeId: value,
-              servicioId: undefined,
-              estacionId: undefined,
-            }))
-          }
-        />
-
-        <SelectBlock
-          label="Servicio"
-          value={filters.servicioId}
-          options={servicios}
-          onChange={(value) =>
-            setFilters((current) => ({
-              ...current,
-              servicioId: value,
-            }))
-          }
-        />
-
-        <SelectBlock
-          label="Estación"
-          value={filters.estacionId}
-          options={estaciones}
-          onChange={(value) =>
-            setFilters((current) => ({
-              ...current,
-              estacionId: value,
-            }))
-          }
-        />
+        <label className="field-group">
+          <span>Sede *</span>
+          <select
+            value={filters.sedeId ?? ''}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                sedeId:     e.target.value ? Number(e.target.value) : undefined,
+                servicioId: undefined,
+                estacionId: undefined,
+              }))
+            }
+          >
+            <option value="">— Selecciona sede —</option>
+            {sedes.map((s) => (
+              <option key={s.id} value={s.id}>{s.label || s.nombre}</option>
+            ))}
+          </select>
+        </label>
 
         <label className="field-group">
-          <span>Usuario operativo</span>
+          <span>Servicio *</span>
+          <select
+            value={filters.servicioId ?? ''}
+            disabled={!filters.sedeId}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                servicioId: e.target.value ? Number(e.target.value) : undefined,
+              }))
+            }
+          >
+            <option value="">— Selecciona servicio —</option>
+            {servicios.map((s) => (
+              <option key={s.id} value={s.id}>{s.label || s.nombre}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field-group">
+          <span>Estación de atención</span>
+          <select
+            value={filters.estacionId ?? ''}
+            disabled={!filters.sedeId}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                estacionId: e.target.value ? Number(e.target.value) : undefined,
+              }))
+            }
+          >
+            <option value="">— Sin estación —</option>
+            {estaciones.map((e) => (
+              <option key={e.id} value={e.id}>{e.label || e.nombre}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field-group">
+          <span>ID de operador</span>
           <input
             type="number"
-            min="1"
+            min={1}
+            placeholder="ej. 1"
             value={filters.usuarioId ?? ''}
-            placeholder="Opcional"
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                usuarioId: event.target.value ? Number(event.target.value) : undefined,
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                usuarioId: e.target.value ? Number(e.target.value) : undefined,
               }))
             }
           />
         </label>
       </div>
+
+      {(!filters.sedeId || !filters.servicioId) && (
+        <div className="inline-alert inline-alert-warning" style={{ marginTop: '12px' }}>
+          ⚠️ Selecciona sede y servicio para habilitar todas las operaciones.
+        </div>
+      )}
     </Card>
   );
 }

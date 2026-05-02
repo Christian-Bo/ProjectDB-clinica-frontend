@@ -5,6 +5,23 @@ import { Badge } from '@/shared/components/ui/Badge';
 import { Button } from '@/shared/components/ui/Button';
 import { Card } from '@/shared/components/ui/Card';
 
+const ESTADO_BADGE: Record<string, string> = {
+  ESPERA:      'badge-info',
+  LLAMADO:     'badge-warning',
+  EN_ATENCION: 'badge-teal',
+  FINALIZADO:  'badge-success',
+  NO_SHOW:     'badge-danger',
+  CANCELADO:   'badge-neutral',
+};
+
+const PRIORIDAD_BADGE: Record<string, string> = {
+  ESPECIAL:     'badge-danger',
+  EMBARAZO:     'badge-warning',
+  DISCAPACIDAD: 'badge-warning',
+  ANCIANO:      'badge-warning',
+  NORMAL:       'badge-info',
+};
+
 export function CallNextPanel({
   currentTicket,
   loading,
@@ -20,8 +37,11 @@ export function CallNextPanel({
   onFinish: (ticketId: number) => void;
   onProcessNoShow: () => void;
 }) {
-  const stateTone =
-    currentTicket?.estado?.toLowerCase().includes('final') ? 'success' : 'warning';
+  const estadoBadge   = currentTicket ? (ESTADO_BADGE[currentTicket.estado]   ?? 'badge-neutral') : 'badge-neutral';
+  const prioridadBadge = currentTicket ? (PRIORIDAD_BADGE[currentTicket.prioridad] ?? 'badge-info') : 'badge-info';
+
+  const canMarkInAttention = currentTicket?.estado === 'LLAMADO';
+  const canFinish          = currentTicket?.estado === 'EN_ATENCION' || currentTicket?.estado === 'LLAMADO';
 
   return (
     <Card className="stack-lg">
@@ -30,51 +50,82 @@ export function CallNextPanel({
           <span className="eyebrow">Atención</span>
           <h3>Control del turno</h3>
         </div>
-        <Badge className="badge-info">Cola activa</Badge>
+        <Badge className="badge-teal">Cola activa</Badge>
       </div>
 
+      {/* Action buttons */}
       <div className="button-row-wrap">
-        <Button loading={loading} onClick={onCallNext}>
-          Llamar siguiente
+        <Button loading={loading} onClick={onCallNext} title="Llama al siguiente ticket de la cola">
+          📢 Llamar siguiente
         </Button>
         <Button
           variant="secondary"
           loading={loading}
-          disabled={!currentTicket}
+          disabled={!canMarkInAttention}
           onClick={() => currentTicket && onMarkInAttention(currentTicket.ticketId)}
+          title={!canMarkInAttention ? 'Solo disponible cuando el ticket está LLAMADO' : 'Marcar que el paciente llegó'}
         >
-          Marcar en atención
+          🩺 En atención
         </Button>
         <Button
           variant="ghost"
           loading={loading}
-          disabled={!currentTicket}
+          disabled={!canFinish}
           onClick={() => currentTicket && onFinish(currentTicket.ticketId)}
+          title={!canFinish ? 'Solo disponible en atención o llamado' : 'Finalizar la atención'}
         >
-          Finalizar
+          ✅ Finalizar
         </Button>
-        <Button variant="danger" loading={loading} onClick={onProcessNoShow}>
-          Procesar no-show
+        <Button
+          variant="danger"
+          loading={loading}
+          onClick={onProcessNoShow}
+          title="Marca como no-show los tickets llamados que no se presentaron"
+        >
+          ❌ Procesar no-show
         </Button>
       </div>
 
+      {/* Current ticket panel */}
       <div className="highlight-panel">
-        <div>
-          <span className="muted-text">Ticket actual</span>
-          <strong className="hero-ticket">{currentTicket?.numeroTicket ?? '—'}</strong>
-          <p>
+        <div style={{ display: 'grid', gap: '6px' }}>
+          <span className="muted-text" style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)' }}>
+            Ticket actual
+          </span>
+          <strong className="hero-ticket">
+            {currentTicket?.numeroTicket ?? '—'}
+          </strong>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255,255,255,0.82)' }}>
             {currentTicket
               ? `${currentTicket.pacienteNombre} · ${currentTicket.servicioNombre}`
-              : 'Aún no hay ticket seleccionado.'}
+              : 'Ningún ticket seleccionado aún.'}
           </p>
+          {currentTicket?.consultorioNombre && (
+            <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)' }}>
+              📍 {currentTicket.consultorioNombre}
+            </span>
+          )}
         </div>
-        <div className="stack-sm">
-          <Badge className={`badge-${stateTone}`}>{currentTicket?.estado ?? 'SIN TICKET'}</Badge>
-          <Badge className={currentTicket?.esEspecial ? 'badge-danger' : 'badge-info'}>
+
+        <div className="stack-sm align-end">
+          <Badge className={estadoBadge}>
+            {currentTicket?.estado ?? 'SIN TICKET'}
+          </Badge>
+          <Badge className={prioridadBadge}>
             {currentTicket?.prioridad ?? 'NORMAL'}
           </Badge>
+          {currentTicket?.esEspecial && (
+            <Badge className="badge-danger">⭐ ESPECIAL</Badge>
+          )}
         </div>
       </div>
+
+      {/* Motivo especial si existe */}
+      {currentTicket?.motivoEspecial && (
+        <div className="inline-alert inline-alert-warning">
+          <strong>Motivo especial:</strong> {currentTicket.motivoEspecial}
+        </div>
+      )}
     </Card>
   );
 }
