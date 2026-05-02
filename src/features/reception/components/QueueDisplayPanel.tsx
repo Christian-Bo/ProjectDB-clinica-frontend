@@ -20,6 +20,9 @@ export function QueueDisplayPanel({
   error?: string | null;
 }) {
   const proximos = queue?.proximos ?? [];
+  const pantallaHref = queue
+    ? `/pantalla-publica?sedeId=${queue.sedeId}&servicioId=${queue.servicioId}`
+    : '/pantalla-publica';
 
   return (
     <Card className="stack-lg">
@@ -29,7 +32,7 @@ export function QueueDisplayPanel({
           <h3>Vista de pantalla pública</h3>
         </div>
         <Link
-          href="/pantalla-publica"
+          href={pantallaHref}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-secondary"

@@ -5,6 +5,13 @@ import { PublicScreenView } from '@/features/reception/components/PublicScreenVi
 import { receptionApi } from '@/lib/api/reception';
 import type { SelectionOption } from '@/lib/api/types';
 
+const readPositiveIntParam = (name: string): number | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  const value = new URLSearchParams(window.location.search).get(name);
+  const parsed = value ? Number(value) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
+
 export default function PantallaPublicaPage() {
   const [sedes,      setSedes]      = useState<SelectionOption[]>([]);
   const [servicios,  setServicios]  = useState<SelectionOption[]>([]);
@@ -13,7 +20,8 @@ export default function PantallaPublicaPage() {
   const [error,      setError]      = useState<string | null>(null);
   const [loadingSedes, setLoadingSedes] = useState(true);
 
-  // Cargar sedes al montar
+  // Cargar sedes al montar. Si la pantalla se abre desde admin/pantallas,
+  // respeta los parametros ?sedeId=&servicioId= para dejarla lista.
   useEffect(() => {
     let cancelled = false;
 
@@ -24,8 +32,13 @@ export default function PantallaPublicaPage() {
         if (cancelled) return;
 
         const safeSedes = Array.isArray(res.data) ? res.data : [];
+        const requestedSedeId = readPositiveIntParam('sedeId');
+        const initialSedeId = requestedSedeId && safeSedes.some((s) => s.id === requestedSedeId)
+          ? requestedSedeId
+          : safeSedes[0]?.id;
+
         setSedes(safeSedes);
-        if (safeSedes.length > 0) setSedeId(safeSedes[0].id);
+        if (initialSedeId) setSedeId(initialSedeId);
         setError(null);
       } catch (err) {
         if (!cancelled) {
@@ -41,7 +54,7 @@ export default function PantallaPublicaPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Cargar servicios cuando cambia la sede
+  // Cargar servicios cuando cambia la sede.
   useEffect(() => {
     if (!sedeId) { setServicios([]); setServicioId(undefined); return; }
 
@@ -53,10 +66,14 @@ export default function PantallaPublicaPage() {
         if (cancelled) return;
 
         const safe = Array.isArray(res.data) ? res.data : [];
+        const requestedServicioId = readPositiveIntParam('servicioId');
         setServicios(safe);
-        setServicioId((prev) =>
-          prev && safe.some((s) => s.id === prev) ? prev : safe[0]?.id,
-        );
+        setServicioId((prev) => {
+          if (requestedServicioId && safe.some((s) => s.id === requestedServicioId)) {
+            return requestedServicioId;
+          }
+          return prev && safe.some((s) => s.id === prev) ? prev : safe[0]?.id;
+        });
         setError(null);
       } catch (err) {
         if (!cancelled) {

@@ -835,3 +835,14 @@ img { max-width: 100%; }
   .input-with-action { grid-template-columns: 1fr; }
   .public-focus-number { font-size: 4rem; }
 }
+
+.public-preview-frame {
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(15,76,92,0.12);
+  background: #071c26;
+}
+
+.public-preview-frame .public-page {
+  min-height: 620px;
+}
