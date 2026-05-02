@@ -57,13 +57,15 @@ if (loginOk && loginData) {
   });
   toast.success('Bienvenido', `Hola, ${loginData.user.nombreCompleto}`);
   const roles = loginData.user.roles;
-  if (roles.includes('Paciente')) {
-    setTimeout(() => window.location.href = '/paciente', 1000);
-  } else if (roles.includes('Medico')) {
-    setTimeout(() => window.location.href = '/medico', 1000);
-  } else {
-    setTimeout(() => window.location.href = '/', 1000);
-  }
+    if (roles.includes('Paciente')) {
+      setTimeout(() => window.location.href = '/paciente', 1000);
+    } else if (roles.includes('Medico')) {
+      setTimeout(() => window.location.href = '/medico', 1000);
+    } else if (roles.includes('Administrador') || roles.includes('Supervisor')) {
+      setTimeout(() => window.location.href = '/admin', 1000);
+    } else {
+      setTimeout(() => window.location.href = '/', 1000);
+    }
 } else {
   toast.error('Error', (res as any).message || 'Credenciales incorrectas.');
 }
