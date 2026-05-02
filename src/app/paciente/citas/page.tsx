@@ -113,13 +113,20 @@ export default function MisCitasPage() {
             <div className="stack-sm">
               <span className="eyebrow">{cita.nombreSede}</span>
               <h3>{cita.nombreServicio}</h3>
-              <p className="muted-text">
-                {new Date(cita.fechaInicio).toLocaleDateString('es-GT', {
-                  weekday: 'long', year: 'numeric',
-                  month: 'long', day: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                })}
-              </p>
+              <div className="stack-sm">
+                <strong style={{ fontSize: '1.1rem', color: 'var(--color-primary)' }}>
+                  {new Date(cita.fechaInicio).toLocaleDateString('es-GT', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                  })}
+                </strong>
+                <span className="muted-text">
+                  {new Date(cita.fechaInicio).toLocaleTimeString('es-GT', {
+                    hour: '2-digit', minute: '2-digit'
+                  })} — {new Date(cita.fechaFin).toLocaleTimeString('es-GT', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+              </div>
             </div>
             <Badge className={ESTADO_CITA_BADGE[cita.estado] ?? 'badge-neutral'}>
               {ESTADO_CITA_LABEL[cita.estado] ?? cita.estado}
@@ -141,28 +148,30 @@ export default function MisCitasPage() {
             </div>
           </div>
 
-          {(cita.estado === 'PENDIENTE' || cita.estado === 'CONFIRMADA') && (
-            <div className="button-row-wrap">
-              {cita.estado === 'PENDIENTE' && (
-                <Button onClick={() => void confirmar(cita.citaId)}>
-                  Confirmar
-                </Button>
-              )}
+        {(cita.estado === 'PENDIENTE' || cita.estado === 'CONFIRMADA') && (
+          <div className="button-row-wrap">
+            {cita.estado === 'PENDIENTE' && (
+              <Button onClick={() => void confirmar(cita.citaId)}>
+                Confirmar
+              </Button>
+            )}
+            {cita.estado === 'CONFIRMADA' && (  // ← solo CONFIRMADA puede reprogramar
               <Button
                 variant="ghost"
                 onClick={() => window.location.href = `/paciente/citas/${cita.citaId}/reprogramar`}
               >
                 Reprogramar
               </Button>
-              <Button
-                variant="danger"
-                loading={cancelando === cita.citaId}
-                onClick={() => void cancelar(cita.citaId)}
-              >
-                Cancelar
-              </Button>
-            </div>
-          )}
+            )}
+            <Button
+              variant="danger"
+              loading={cancelando === cita.citaId}
+              onClick={() => void cancelar(cita.citaId)}
+            >
+              Cancelar
+            </Button>
+          </div>
+        )}
         </Card>
       ))}
     </div>

@@ -9,10 +9,20 @@ import { useToast } from '@/shared/components/providers/ToastProvider';
 
 const PACIENTE_ID_DEMO = 5;
 
+const SLOTS = Array.from({ length: 30 }, (_, i) => {
+  const totalMinutos = 7 * 60 + i * 20;
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
+  const label = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+  return { label, value: `${label}:00` };
+});
+
 export default function ReservarCitaPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [citaCreada, setCitaCreada] = useState<{ citaId: number; estado: string } | null>(null);
+  const [fechaDate, setFechaDate] = useState('');
+  const [horaSlot, setHoraSlot] = useState('');
 
   const [form, setForm] = useState<ReservarCitaRequest>({
     pacienteId: PACIENTE_ID_DEMO,
@@ -25,32 +35,32 @@ export default function ReservarCitaPage() {
     motivoConsulta: '',
   });
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
   async function handleSubmit() {
-    if (!form.fechaInicio) {
-      toast.warning('Campo requerido', 'Selecciona una fecha y hora para la cita.');
+    if (!fechaDate || !horaSlot) {
+      toast.warning('Campos requeridos', 'Selecciona una fecha y una hora para la cita.');
       return;
     }
+
+    const fechaInicio = `${fechaDate}T${horaSlot}`;
 
     setLoading(true);
     setCitaCreada(null);
 
-    const payload = {
-      ...form,
-      sedeId: Number(form.sedeId),
-      servicioId: Number(form.servicioId),
-      medicoId: Number(form.medicoId),
-      tipoConsultaId: Number(form.tipoConsultaId),
-      fechaInicio: form.fechaInicio + ':00',
-    };
-
     const res = await patientsApi.post<{ citaId: number; estado: string }>(
       '/api/reservar/cita',
-      payload,
-      true // genera Idempotency-Key automáticamente
+      {
+        ...form,
+        sedeId: Number(form.sedeId),
+        servicioId: Number(form.servicioId),
+        medicoId: Number(form.medicoId),
+        tipoConsultaId: Number(form.tipoConsultaId),
+        fechaInicio,
+      },
+      true
     );
 
     if (res.success && res.data) {
@@ -85,10 +95,7 @@ export default function ReservarCitaPage() {
       {citaCreada && (
         <div className="inline-alert inline-alert-warning">
           ✅ Cita #{citaCreada.citaId} creada en estado <strong>{citaCreada.estado}</strong>.
-          <Button
-            variant="ghost"
-            onClick={() => window.location.href = '/paciente/citas'}
-          >
+          <Button variant="ghost" onClick={() => window.location.href = '/paciente/citas'}>
             Ver mis citas →
           </Button>
         </div>
@@ -106,7 +113,6 @@ export default function ReservarCitaPage() {
               <option value={4}>Sede Zona 10</option>
             </select>
           </div>
-
           <div className="field-group">
             <span>Servicio</span>
             <select name="servicioId" value={form.servicioId} onChange={handleChange}>
@@ -115,7 +121,6 @@ export default function ReservarCitaPage() {
               <option value={6}>Cardiología Zona 10</option>
             </select>
           </div>
-
           <div className="field-group">
             <span>Médico</span>
             <select name="medicoId" value={form.medicoId} onChange={handleChange}>
@@ -123,7 +128,6 @@ export default function ReservarCitaPage() {
               <option value={2}>Médico 2</option>
             </select>
           </div>
-
           <div className="field-group">
             <span>Modalidad</span>
             <select name="modalidad" value={form.modalidad} onChange={handleChange}>
@@ -135,16 +139,23 @@ export default function ReservarCitaPage() {
 
         <div className="content-grid-2">
           <div className="field-group">
-            <span>Fecha y hora</span>
+            <span>Fecha</span>
             <input
-              type="datetime-local"
-              name="fechaInicio"
-              value={form.fechaInicio}
-              onChange={handleChange}
-              min={new Date().toISOString().slice(0, 16)}
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={fechaDate}
+              onChange={(e) => setFechaDate(e.target.value)}
             />
           </div>
-
+          <div className="field-group">
+            <span>Hora</span>
+            <select value={horaSlot} onChange={(e) => setHoraSlot(e.target.value)}>
+              <option value="">Selecciona un horario...</option>
+              {SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>{slot.label}</option>
+              ))}
+            </select>
+          </div>
           <div className="field-group">
             <span>Motivo de consulta</span>
             <input
@@ -158,17 +169,10 @@ export default function ReservarCitaPage() {
         </div>
 
         <div className="button-row-wrap">
-          <Button
-            loading={loading}
-            disabled={loading}
-            onClick={() => void handleSubmit()}
-          >
+          <Button loading={loading} disabled={loading} onClick={() => void handleSubmit()}>
             {loading ? 'Reservando...' : 'Reservar cita'}
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => window.location.href = '/paciente/citas'}
-          >
+          <Button variant="ghost" onClick={() => window.location.href = '/paciente/citas'}>
             Ver mis citas
           </Button>
         </div>

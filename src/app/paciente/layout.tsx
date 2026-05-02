@@ -4,6 +4,7 @@ const navItems = [
   { label: 'Inicio', hint: 'Dashboard', href: '/paciente' },
   { label: 'Mis Citas', hint: 'Historial y estados', href: '/paciente/citas' },
   { label: 'Reservar Cita', hint: 'Nueva cita', href: '/paciente/citas/nueva' },
+  { label: 'Mi Perfil', hint: 'Datos personales', href: '/paciente/perfil' }
 ];
 
 export default function PacienteLayout({
