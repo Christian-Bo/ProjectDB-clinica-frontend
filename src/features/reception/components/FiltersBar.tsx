@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { SelectionOption } from '@/lib/api/types';
 import type { DashboardFilters } from '@/features/reception/models/ui';
+import { session } from '@/lib/auth/session';
 import { Card } from '@/shared/components/ui/Card';
 
 export function FiltersBar({
@@ -17,6 +19,20 @@ export function FiltersBar({
   servicios: SelectionOption[];
   estaciones: SelectionOption[];
 }) {
+  const [operatorName, setOperatorName] = useState('Operador de sesión');
+
+  useEffect(() => {
+    try {
+      const current = session.getUser();
+      if (current?.usuarioId) {
+        setOperatorName(current.nombreCompleto || current.username || `Usuario ${current.usuarioId}`);
+        setFilters((prev) => ({ ...prev, usuarioId: prev.usuarioId ?? current.usuarioId }));
+      }
+    } catch {
+      // Si localStorage no está disponible, se opera sin UsuarioId manual.
+    }
+  }, [setFilters]);
+
   return (
     <Card>
       <div className="section-heading-row" style={{ marginBottom: '14px' }}>
@@ -88,21 +104,13 @@ export function FiltersBar({
           </select>
         </label>
 
-        <label className="field-group">
-          <span>ID de operador</span>
-          <input
-            type="number"
-            min={1}
-            placeholder="ej. 1"
-            value={filters.usuarioId ?? ''}
-            onChange={(e) =>
-              setFilters((prev) => ({
-                ...prev,
-                usuarioId: e.target.value ? Number(e.target.value) : undefined,
-              }))
-            }
-          />
-        </label>
+        <div className="field-group operator-session-box">
+          <span>Operador</span>
+          <div className="operator-session-pill">
+            <strong>{operatorName}</strong>
+            <small>Tomado de la sesión activa</small>
+          </div>
+        </div>
       </div>
 
       {(!filters.sedeId || !filters.servicioId) && (

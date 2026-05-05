@@ -13,20 +13,39 @@ const normalizeQueue = (value: QueueDisplayResponse | null | undefined): QueueDi
   return {
     ...value,
     proximos: Array.isArray(value.proximos) ? value.proximos : [],
+    servicioIds: Array.isArray(value.servicioIds) ? value.servicioIds : [],
+    ticketsLlamados: Array.isArray(value.ticketsLlamados) ? value.ticketsLlamados : [],
+    ultimosLlamados: Array.isArray(value.ultimosLlamados) ? value.ultimosLlamados : [],
   };
+};
+
+const normalizeIds = (servicioId?: number, servicioIds?: number[]) => {
+  const values = [...(servicioIds ?? []), ...(servicioId ? [servicioId] : [])]
+    .filter((value): value is number => Number.isFinite(value) && value > 0);
+
+  return Array.from(new Set(values)).sort((a, b) => a - b);
 };
 
 export function useQueueDisplay(
   sedeId?: number,
   servicioId?: number,
   enableRealtime = true,
+  servicioIds?: number[],
 ) {
   const [queue, setQueue] = useState<QueueDisplayResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const resolvedServicioIds = useMemo(
+    () => normalizeIds(servicioId, servicioIds),
+    [servicioId, servicioIds],
+  );
+
+  const serviciosKey = resolvedServicioIds.join(',');
+  const primaryServicioId = resolvedServicioIds[0];
+
   useEffect(() => {
-    if (!sedeId || !servicioId) {
+    if (!sedeId || resolvedServicioIds.length === 0 || !primaryServicioId) {
       setQueue(null);
       setError(null);
       return;
@@ -39,7 +58,7 @@ export function useQueueDisplay(
     const load = async () => {
       try {
         setIsLoading(true);
-        const response = await receptionApi.getPantallaCola(sedeId, servicioId);
+        const response = await receptionApi.getPantallaCola(sedeId, primaryServicioId, resolvedServicioIds);
 
         if (!disposed) {
           setQueue(normalizeQueue(response.data));
@@ -62,7 +81,8 @@ export function useQueueDisplay(
     if (enableRealtime && typeof window !== 'undefined') {
       const url = new URL('/api/pantalla/cola/stream', env.apiUrl);
       url.searchParams.set('sedeId', String(sedeId));
-      url.searchParams.set('servicioId', String(servicioId));
+      url.searchParams.set('servicioId', String(primaryServicioId));
+      url.searchParams.set('servicioIds', serviciosKey);
       url.searchParams.set('intervalSeconds', '4');
 
       try {
@@ -100,7 +120,7 @@ export function useQueueDisplay(
         clearInterval(intervalId);
       }
     };
-  }, [enableRealtime, sedeId, servicioId]);
+  }, [enableRealtime, sedeId, primaryServicioId, serviciosKey]);
 
   return useMemo(
     () => ({

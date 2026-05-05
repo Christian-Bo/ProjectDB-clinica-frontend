@@ -2,8 +2,12 @@ import { apiClient } from '@/lib/api/client';
 import type {
   AppointmentSelection,
   CallNextRequest,
+  CancelTicketRequest,
   FinalizeTicketRequest,
+  GenerateKioskTicketRequest,
   GenerateTicketRequest,
+  ConfigureKioskWindowRequest,
+  KioskWindowConfig,
   NoShowResponse,
   PatientSelection,
   QueueDisplayResponse,
@@ -47,6 +51,12 @@ export const receptionApi = {
   getEstados: () =>
     apiClient.get<SelectionOption[]>('/api/recepcion/catalogos/estados-ticket'),
 
+  getKioscoVentanillas: (sedeId: number) =>
+    apiClient.get<KioskWindowConfig[]>('/api/recepcion/catalogos/kiosco/ventanillas', { sedeId }),
+
+  configurarKioscoVentanilla: (request: ConfigureKioskWindowRequest) =>
+    apiClient.post<KioskWindowConfig>('/api/recepcion/catalogos/kiosco/ventanillas', request, true),
+
   getTickets: (filters?: Record<string, string | number | undefined | null>) =>
     apiClient.get<TicketDetail[]>('/api/tickets', filters),
 
@@ -65,11 +75,18 @@ export const receptionApi = {
       servicioId,
     }),
 
-  getPantallaCola: (sedeId: number, servicioId: number) =>
-    apiClient.get<QueueDisplayResponse>('/api/pantalla/cola', { sedeId, servicioId }),
+  getPantallaCola: (sedeId: number, servicioId?: number | null, servicioIds?: number[]) =>
+    apiClient.get<QueueDisplayResponse>('/api/pantalla/cola', {
+      sedeId,
+      servicioId: servicioId ?? servicioIds?.[0],
+      servicioIds: servicioIds && servicioIds.length > 0 ? servicioIds.join(',') : undefined,
+    }),
 
   generarTicket: (request: GenerateTicketRequest) =>
     apiClient.post<TicketDetail>('/api/tickets/generar', request, true),
+
+  generarTicketKiosco: (request: GenerateKioskTicketRequest) =>
+    apiClient.post<TicketDetail>('/api/tickets/generar-kiosco', request, true),
 
   generarTicketEspecial: (request: SpecialTicketRequest) =>
     apiClient.post<TicketDetail>('/api/tickets/generar-especial', request, true),
@@ -82,6 +99,12 @@ export const receptionApi = {
 
   finalizarTicket: (ticketId: number, request: FinalizeTicketRequest) =>
     apiClient.post<TicketDetail>(`/api/tickets/${ticketId}/finalizar`, request, true),
+
+  cancelarTicket: (ticketId: number, request: CancelTicketRequest) =>
+    apiClient.post<TicketDetail>(`/api/tickets/${ticketId}/cancelar`, request, true),
+
+  rellamarTicket: (ticketId: number, request?: { usuarioId?: number | null }) =>
+    apiClient.post<TicketDetail>(`/api/tickets/${ticketId}/rellamar`, request ?? {}, true),
 
   procesarNoShow: () =>
     apiClient.post<NoShowResponse>('/api/tickets/no-show/procesar', undefined, true),

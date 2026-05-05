@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useMemo } from 'react';
 import { CallNextPanel } from '@/features/reception/components/CallNextPanel';
 import { FiltersBar } from '@/features/reception/components/FiltersBar';
-import { GenerateTicketModal } from '@/features/reception/components/GenerateTicketModal';
 import { OverviewCards } from '@/features/reception/components/OverviewCards';
 import { QueueDisplayPanel } from '@/features/reception/components/QueueDisplayPanel';
 import { TicketsPanel } from '@/features/reception/components/TicketsPanel';
@@ -17,14 +17,15 @@ type ReceptionDashboardProps = {
   title?: string;
   subtitle?: string;
   eyebrow?: string;
+  showKioskShortcut?: boolean;
 };
 
 export function ReceptionDashboard({
   title = 'Gestión de tickets y cola',
   subtitle = 'Panel operativo para generar tickets, controlar la cola de atención y gestionar la pantalla pública de turnos.',
   eyebrow = 'Recepción clínica',
+  showKioskShortcut = true,
 }: ReceptionDashboardProps) {
-  const [modalOpen, setModalOpen] = useState(false);
   const dashboard = useDashboardData();
   const queue = useQueueDisplay(
     dashboard.filters.sedeId,
@@ -48,9 +49,11 @@ export function ReceptionDashboard({
           <h1 style={{ margin: 0, fontSize: '1.8rem' }}>{title}</h1>
           <p style={{ margin: 0, maxWidth: '520px' }}>{subtitle}</p>
           <div className="button-row-wrap">
-            <Button onClick={() => setModalOpen(true)} disabled={!isOperating}>
-              🎫 Generar ticket
-            </Button>
+            {showKioskShortcut && (
+              <Link className="btn btn-primary" href="/recepcion/tickets">
+                🎫 Abrir kiosco de tickets
+              </Link>
+            )}
             <Button
               variant="ghost"
               style={{
@@ -92,11 +95,14 @@ export function ReceptionDashboard({
           currentTicket={dashboard.selectedTicket}
           loading={
             dashboard.loading.callNext ||
+            dashboard.loading.recallTicket ||
             dashboard.loading.markInAttention ||
             dashboard.loading.finishTicket ||
+            dashboard.loading.cancelTicket ||
             dashboard.loading.processNoShow
           }
           onCallNext={() => void dashboard.callNext()}
+          onRecall={(id) => void dashboard.recallTicket(id)}
           onMarkInAttention={(id) => void dashboard.markInAttention(id)}
           onFinish={(id) => void dashboard.finishTicket(id, 'Finalizado desde panel')}
           onProcessNoShow={() => void dashboard.processNoShow()}
@@ -110,9 +116,11 @@ export function ReceptionDashboard({
             <span className="eyebrow">Selección activa</span>
             <h3>Paciente y cita vinculada</h3>
           </div>
-          <Button variant="secondary" onClick={() => setModalOpen(true)}>
-            🎫 Generar ticket
-          </Button>
+          {showKioskShortcut && (
+            <Link className="btn btn-secondary" href="/recepcion/tickets">
+              🎫 Ir al kiosco
+            </Link>
+          )}
         </div>
         <div className="selection-summary-grid">
           {[
@@ -134,33 +142,10 @@ export function ReceptionDashboard({
         selectedTicket={dashboard.selectedTicket}
         onSelect={(t) => dashboard.setSelectedTicket(t)}
         onFind={(ref) => void dashboard.findTicket(ref)}
-      />
-
-      <GenerateTicketModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        isLoading={
-          dashboard.loading.generateTicket ||
-          dashboard.loading.generateSpecialTicket ||
-          dashboard.loading.patients ||
-          dashboard.loading.appointments ||
-          dashboard.loading.catalogosDependientes
-        }
-        filters={dashboard.filters}
-        setFilters={dashboard.setFilters}
-        sedes={dashboard.sedes}
-        servicios={dashboard.servicios}
-        priorityOptions={dashboard.prioridades}
-        patientItems={dashboard.patients}
-        appointmentItems={dashboard.appointments}
-        selectedPatient={dashboard.selectedPatient}
-        selectedAppointment={dashboard.selectedAppointment}
-        onSelectPatient={dashboard.setSelectedPatient}
-        onSelectAppointment={dashboard.setSelectedAppointment}
-        onLoadPatients={dashboard.loadPatients}
-        onLoadAppointments={dashboard.loadAppointments}
-        onGenerate={(p) => dashboard.generateNormalTicket(p)}
-        onGenerateSpecial={(r) => dashboard.generateSpecialTicket(r)}
+        onCancel={(ticket) => void dashboard.cancelTicket(ticket.ticketId, 'Cancelado desde seguimiento')}
+        onRecall={(ticket) => void dashboard.recallTicket(ticket.ticketId)}
+        loadingCancel={dashboard.loading.cancelTicket}
+        loadingRecall={dashboard.loading.recallTicket}
       />
     </>
   );

@@ -26,6 +26,7 @@ export function CallNextPanel({
   currentTicket,
   loading,
   onCallNext,
+  onRecall,
   onMarkInAttention,
   onFinish,
   onProcessNoShow,
@@ -33,6 +34,7 @@ export function CallNextPanel({
   currentTicket: TicketDetail | null;
   loading?: boolean;
   onCallNext: () => void;
+  onRecall: (ticketId: number) => void;
   onMarkInAttention: (ticketId: number) => void;
   onFinish: (ticketId: number) => void;
   onProcessNoShow: () => void;
@@ -40,6 +42,7 @@ export function CallNextPanel({
   const estadoBadge   = currentTicket ? (ESTADO_BADGE[currentTicket.estado]   ?? 'badge-neutral') : 'badge-neutral';
   const prioridadBadge = currentTicket ? (PRIORIDAD_BADGE[currentTicket.prioridad] ?? 'badge-info') : 'badge-info';
 
+  const canRecall          = currentTicket?.estado === 'LLAMADO';
   const canMarkInAttention = currentTicket?.estado === 'LLAMADO';
   const canFinish          = currentTicket?.estado === 'EN_ATENCION' || currentTicket?.estado === 'LLAMADO';
 
@@ -57,6 +60,15 @@ export function CallNextPanel({
       <div className="button-row-wrap">
         <Button loading={loading} onClick={onCallNext} title="Llama al siguiente ticket de la cola">
           📢 Llamar siguiente
+        </Button>
+        <Button
+          variant="secondary"
+          loading={loading}
+          disabled={!canRecall}
+          onClick={() => currentTicket && onRecall(currentTicket.ticketId)}
+          title={!canRecall ? 'Solo disponible cuando el ticket está LLAMADO' : 'Repetir el llamado del ticket actual'}
+        >
+          📣 Volver a llamar
         </Button>
         <Button
           variant="secondary"
@@ -100,9 +112,9 @@ export function CallNextPanel({
               ? `${currentTicket.pacienteNombre} · ${currentTicket.servicioNombre}`
               : 'Ningún ticket seleccionado aún.'}
           </p>
-          {currentTicket?.consultorioNombre && (
+          {(currentTicket?.ventanillaNombre || currentTicket?.consultorioNombre) && (
             <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.72)' }}>
-              📍 {currentTicket.consultorioNombre}
+              📍 {currentTicket.ventanillaNombre ?? currentTicket.consultorioNombre}
             </span>
           )}
         </div>

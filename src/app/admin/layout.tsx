@@ -8,6 +8,7 @@ import { session } from '@/lib/auth/session';
 const NAV_ITEMS = [
   { href: '/admin', label: '🏠 Dashboard' },
   { href: '/admin/tickets', label: '🎫 Tickets y cola' },
+  { href: '/admin/kiosco', label: '🖥️ Kiosco tickets' },
   { href: '/admin/pantallas', label: '📺 Pantallas' },
   { href: '/admin/usuarios', label: '👥 Usuarios' },
 ];

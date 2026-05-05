@@ -13,7 +13,7 @@ export default function AdminPantallasPage() {
   const [sedes, setSedes] = useState<SelectionOption[]>([]);
   const [servicios, setServicios] = useState<SelectionOption[]>([]);
   const [sedeId, setSedeId] = useState<number | undefined>();
-  const [servicioId, setServicioId] = useState<number | undefined>();
+  const [servicioIds, setServicioIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingServicios, setLoadingServicios] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function AdminPantallasPage() {
   useEffect(() => {
     if (!sedeId) {
       setServicios([]);
-      setServicioId(undefined);
+      setServicioIds([]);
       return;
     }
 
@@ -62,14 +62,15 @@ export default function AdminPantallasPage() {
 
         const items = Array.isArray(response.data) ? response.data : [];
         setServicios(items);
-        setServicioId((current) =>
-          current && items.some((item) => item.id === current) ? current : items[0]?.id,
-        );
+        setServicioIds((current) => {
+          const validCurrent = current.filter((id) => items.some((item) => item.id === id));
+          return validCurrent.length > 0 ? validCurrent : items[0]?.id ? [items[0].id] : [];
+        });
         setError(null);
       } catch (err) {
         if (!cancelled) {
           setServicios([]);
-          setServicioId(undefined);
+          setServicioIds([]);
           setError(err instanceof Error ? err.message : 'No fue posible cargar los servicios.');
         }
       } finally {
@@ -86,23 +87,34 @@ export default function AdminPantallasPage() {
     [sedeId, sedes],
   );
 
-  const selectedServicio = useMemo(
-    () => servicios.find((item) => item.id === servicioId),
-    [servicioId, servicios],
+  const selectedServiciosLabel = useMemo(
+    () => servicios
+      .filter((item) => servicioIds.includes(item.id))
+      .map((item) => item.label || item.nombre)
+      .join(', '),
+    [servicioIds, servicios],
   );
 
-  const publicHref = sedeId && servicioId
-    ? `/pantalla-publica?sedeId=${sedeId}&servicioId=${servicioId}`
+  const publicHref = sedeId && servicioIds.length > 0
+    ? `/pantalla-publica?sedeId=${sedeId}&servicioIds=${servicioIds.join(',')}`
     : '/pantalla-publica';
+
+  const toggleService = (id: number) => {
+    setServicioIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  };
 
   return (
     <div className="main-content" style={{ maxWidth: '100%' }}>
       <section className="hero-banner">
         <div style={{ display: 'grid', gap: '14px', alignContent: 'center' }}>
           <span className="eyebrow light">Administración · Pantallas</span>
-          <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Pantalla pública de turnos</h1>
-          <p style={{ margin: 0, maxWidth: '560px' }}>
-            Configura la sede y servicio que se mostrarán en monitores o televisores de sala de espera, sin mezclar esta vista con otros módulos del administrador.
+          <h1 style={{ margin: 0, fontSize: '1.8rem' }}>Pantalla pública por sectores</h1>
+          <p style={{ margin: 0, maxWidth: '620px' }}>
+            Configura una sede con uno o varios servicios para que cada monitor muestre únicamente los llamados de su área o sector.
           </p>
           <div className="button-row-wrap">
             <Link href={publicHref} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
@@ -116,10 +128,10 @@ export default function AdminPantallasPage() {
 
         <div className="hero-card side-highlight">
           <span className="eyebrow light">Configuración activa</span>
-          <strong>{selectedSede?.label ?? selectedSede?.nombre ?? 'Sin sede'} · {selectedServicio?.label ?? selectedServicio?.nombre ?? 'Sin servicio'}</strong>
-          <p>La pantalla pública se actualiza por SSE cuando está disponible y por consulta automática cada 15 segundos como respaldo.</p>
+          <strong>{selectedSede?.label ?? selectedSede?.nombre ?? 'Sin sede'} · {selectedServiciosLabel || 'Sin servicios'}</strong>
+          <p>La configuración queda oculta en la pantalla pública y se abre con el botón lateral.</p>
           <div>
-            {sedeId && servicioId
+            {sedeId && servicioIds.length > 0
               ? <Badge className="badge-success">✅ Lista para mostrar</Badge>
               : <Badge className="badge-warning">⚠️ Selección pendiente</Badge>}
           </div>
@@ -130,7 +142,7 @@ export default function AdminPantallasPage() {
         <div className="section-heading-row">
           <div>
             <span className="eyebrow">Parámetros de pantalla</span>
-            <h3>Seleccionar cola visible</h3>
+            <h3>Seleccionar sede y servicios visibles</h3>
           </div>
           {loading || loadingServicios ? <Badge className="badge-info">Cargando...</Badge> : null}
         </div>
@@ -145,7 +157,7 @@ export default function AdminPantallasPage() {
               disabled={loading}
               onChange={(event) => {
                 setSedeId(event.target.value ? Number(event.target.value) : undefined);
-                setServicioId(undefined);
+                setServicioIds([]);
               }}
             >
               <option value="">— Selecciona sede —</option>
@@ -155,19 +167,21 @@ export default function AdminPantallasPage() {
             </select>
           </label>
 
-          <label className="field-group">
-            <span>Servicio *</span>
-            <select
-              value={servicioId ?? ''}
-              disabled={!sedeId || loadingServicios}
-              onChange={(event) => setServicioId(event.target.value ? Number(event.target.value) : undefined)}
-            >
-              <option value="">— Selecciona servicio —</option>
+          <div className="field-group" style={{ gridColumn: 'span 3' }}>
+            <span>Servicios *</span>
+            <div className="public-service-chip-row">
               {servicios.map((item) => (
-                <option key={item.id} value={item.id}>{item.label || item.nombre}</option>
+                <button
+                  type="button"
+                  key={item.id}
+                  className={servicioIds.includes(item.id) ? 'active' : ''}
+                  onClick={() => toggleService(item.id)}
+                >
+                  {item.label || item.nombre}
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -182,13 +196,13 @@ export default function AdminPantallasPage() {
           </Link>
         </div>
 
-        {sedeId && servicioId ? (
+        {sedeId && servicioIds.length > 0 ? (
           <div className="public-preview-frame">
-            <PublicScreenView sedeId={sedeId} servicioId={servicioId} />
+            <PublicScreenView sedeId={sedeId} servicioId={servicioIds[0]} servicioIds={servicioIds} />
           </div>
         ) : (
           <EmptyState
-            title="Selecciona sede y servicio"
+            title="Selecciona sede y al menos un servicio"
             description="Cuando definas el contexto, aquí verás una vista previa de la pantalla pública."
           />
         )}

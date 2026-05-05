@@ -7,8 +7,14 @@ const NAV_ITEMS = [
   {
     label: 'Recepción',
     hint: 'Tickets y cola operativa',
-    href: '/',
+    href: '/recepcion',
     icon: '🏥',
+  },
+  {
+    label: 'Kiosco de tickets',
+    hint: 'Emisión rápida y N/A',
+    href: '/recepcion/tickets',
+    icon: '🎫',
   },
   {
     label: 'Pantalla pública',

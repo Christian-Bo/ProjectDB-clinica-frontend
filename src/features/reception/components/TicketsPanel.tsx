@@ -30,11 +30,19 @@ export function TicketsPanel({
   selectedTicket,
   onSelect,
   onFind,
+  onCancel,
+  onRecall,
+  loadingCancel,
+  loadingRecall,
 }: {
   tickets?: TicketDetail[];
   selectedTicket: TicketDetail | null;
   onSelect: (ticket: TicketDetail) => void;
   onFind: (reference: string) => void;
+  onCancel?: (ticket: TicketDetail) => void;
+  onRecall?: (ticket: TicketDetail) => void;
+  loadingCancel?: boolean;
+  loadingRecall?: boolean;
 }) {
   const [reference, setReference] = useState('');
   const safeTickets = tickets ?? [];
@@ -60,8 +68,8 @@ export function TicketsPanel({
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onFind(reference)}
-            placeholder="Busca por número o ID de ticket"
-            aria-label="Buscar ticket por número o ID"
+            placeholder="Busca por número, ID o DPI"
+            aria-label="Buscar ticket por número, ID o DPI"
           />
           <Button variant="secondary" onClick={() => onFind(reference)} disabled={!reference.trim()}>
             Buscar
@@ -156,6 +164,7 @@ export function TicketsPanel({
                 { label: 'Expediente',   value: selectedTicket.numeroExpediente ?? 'Sin expediente' },
                 { label: 'Sede',         value: selectedTicket.sedeNombre },
                 { label: 'Servicio',     value: selectedTicket.servicioNombre },
+                { label: 'Ventanilla',   value: selectedTicket.ventanillaNombre ?? selectedTicket.consultorioNombre ?? 'Pendiente' },
                 { label: 'Prioridad',    value: selectedTicket.prioridad },
                 { label: 'Llamados',     value: String(selectedTicket.contadorLlamados) },
                 { label: 'Médico',       value: selectedTicket.medicoNombre ?? 'Sin asignación' },
@@ -177,6 +186,33 @@ export function TicketsPanel({
                 <strong>Motivo especial:</strong> {selectedTicket.motivoEspecial}
               </div>
             )}
+
+            <div className="ticket-actions-grid">
+              {onRecall && selectedTicket.estado === 'LLAMADO' && (
+                <Button
+                  variant="secondary"
+                  loading={loadingRecall}
+                  disabled={loadingRecall}
+                  onClick={() => onRecall(selectedTicket)}
+                >
+                  📣 Volver a llamar
+                </Button>
+              )}
+              {onCancel && ['ESPERA', 'LLAMADO', 'EN_ATENCION'].includes(selectedTicket.estado) && (
+                <Button
+                  variant="ghost"
+                  loading={loadingCancel}
+                  disabled={loadingCancel}
+                  onClick={() => {
+                    if (window.confirm(`¿Cancelar el ticket ${selectedTicket.numeroTicket}?`)) {
+                      onCancel(selectedTicket);
+                    }
+                  }}
+                >
+                  🛑 Cancelar ticket
+                </Button>
+              )}
+            </div>
           </>
         )}
       </Card>

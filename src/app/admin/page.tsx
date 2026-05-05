@@ -8,8 +8,15 @@ const ADMIN_CARDS = [
   {
     icon: '🎫',
     title: 'Tickets y cola',
-    desc: 'Generar tickets, llamar el siguiente turno, finalizar atenciones y procesar no-show.',
+    desc: 'Monitorear tickets, llamar el siguiente turno, finalizar atenciones y procesar no-show. La generación queda en el kiosco de recepción.',
     href: '/admin/tickets',
+    primary: true,
+  },
+  {
+    icon: '🖥️',
+    title: 'Kiosco de tickets',
+    desc: 'Abrir una pantalla independiente para recepción con teclado, N/A, prioridad, ticket especial e historial de cancelación.',
+    href: '/admin/kiosco',
     primary: true,
   },
   {
@@ -62,7 +69,7 @@ export default function AdminDashboard() {
         <div className="hero-card side-highlight">
           <span className="eyebrow light">Nuevo módulo conectado</span>
           <strong>Tickets + Pantallas</strong>
-          <p>La administración ya tiene accesos propios para operar la cola y abrir monitores públicos de turnos.</p>
+          <p>La administración supervisa la cola, pantallas y puede desplegar el kiosco de tickets como pantalla independiente.</p>
         </div>
       </section>
 
