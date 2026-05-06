@@ -208,8 +208,22 @@ export default function VerConsultaPage() {
               <h4 style={{ margin: 0, color: 'var(--color-primary)' }}>Acciones clínicas</h4>
               <div style={{ display: 'grid', gap: 10 }}>
                 <Link
-                  href={`/medico/pacientes/${consulta.pacienteId}/historial`}
+                  href={`/medico/consultas/${consulta.consultaId}/receta`}
+                  className="btn btn-primary"
+                  style={{ textAlign: 'center' }}
+                >
+                  💊 Emitir receta
+                </Link>
+                <Link
+                  href={`/medico/consultas/${consulta.consultaId}/orden`}
                   className="btn btn-secondary"
+                  style={{ textAlign: 'center' }}
+                >
+                  🔬 Crear orden
+                </Link>
+                <Link
+                  href={`/medico/pacientes/${consulta.pacienteId}/historial`}
+                  className="btn btn-ghost"
                   style={{ textAlign: 'center' }}
                 >
                   Ver historial del paciente
