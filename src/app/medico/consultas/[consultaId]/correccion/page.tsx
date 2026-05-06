@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { session } from '@/lib/auth/session';
 import { useParams, useRouter } from 'next/navigation';
 import { consultasApi } from '@/lib/api/consultas';
 
@@ -10,7 +11,12 @@ export default function CorreccionPage() {
   const consultaId = Number(params.consultaId);
 
   const [nota, setNota] = useState('');
-  const [usuarioId] = useState('1');
+  const [usuarioId, setUsuarioId] = useState<number>(1);
+
+  useEffect(() => {
+    const user = session.getUser();
+    if (user) setUsuarioId(user.usuarioId);
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
@@ -25,7 +31,7 @@ export default function CorreccionPage() {
     try {
       await consultasApi.agregarCorreccion(consultaId, {
         nota: nota.trim(),
-        usuarioId: Number(usuarioId),
+        usuarioId,
       });
       setExito(true);
       setTimeout(() => router.push(`/medico/consultas/${consultaId}`), 1500);

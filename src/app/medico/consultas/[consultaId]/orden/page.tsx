@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { consultasApi } from '@/lib/api/consultas';
+import { session } from '@/lib/auth/session';
 
 export default function CrearOrdenPage() {
   const params = useParams();
@@ -28,7 +29,7 @@ export default function CrearOrdenPage() {
         tipoOrden,
         descripcion: descripcion.trim(),
         urgencia,
-        usuarioId: 1,
+        usuarioId: session.getUser()?.usuarioId ?? 1,
       });
       router.push(`/medico/ordenes/${res.data.ordenId}`);
     } catch (e: unknown) {

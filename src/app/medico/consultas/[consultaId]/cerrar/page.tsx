@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { session } from '@/lib/auth/session';
 import { useParams, useRouter } from 'next/navigation';
 import { consultasApi } from '@/lib/api/consultas';
 import type { DiagnosticoRequest } from '@/lib/api/consultas.types';
@@ -81,7 +82,12 @@ export default function CerrarConsultaPage() {
   const [hallazgos, setHallazgos] = useState('');
   const [plan, setPlan] = useState('');
   const [observaciones, setObservaciones] = useState('');
-  const [usuarioId] = useState('1');
+  const [usuarioId, setUsuarioId] = useState<number>(1);
+
+  useEffect(() => {
+    const user = session.getUser();
+    if (user) setUsuarioId(user.usuarioId);
+  }, []);
   const [diagnosticos, setDiagnosticos] = useState<DiagnosticoRequest[]>([
     { codigoCIE10: '', descripcionCIE10: '', tipoDiagnostico: 'PRINCIPAL' }
   ]);
@@ -109,7 +115,7 @@ export default function CerrarConsultaPage() {
         hallazgos: hallazgos || undefined,
         plan: plan || undefined,
         observaciones: observaciones || undefined,
-        usuarioId: Number(usuarioId),
+        usuarioId,
         diagnosticos,
         presionSistolica: sv.presionSistolica ? Number(sv.presionSistolica) : undefined,
         presionDiastolica: sv.presionDiastolica ? Number(sv.presionDiastolica) : undefined,

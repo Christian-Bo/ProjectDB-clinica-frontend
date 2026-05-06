@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { consultasApi } from '@/lib/api/consultas';
 import type { MedicamentoItemRequest } from '@/lib/api/consultas.types';
+import { session } from '@/lib/auth/session';
 
 const MEDICAMENTOS_SEED = [
   { id: 1, nombre: 'Amoxicilina 500mg cap x30', principio: 'Amoxicilina' },
@@ -74,7 +75,7 @@ export default function CrearRecetaPage() {
       }));
       const res = await consultasApi.crearReceta({
         consultaId,
-        usuarioId: 1,
+        usuarioId: session.getUser()?.usuarioId ?? 1,
         items: payload,
       });
       router.push(`/medico/recetas/${res.data.recetaId}`);
