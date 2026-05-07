@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { session } from '@/lib/auth/session';
 import type { ApiEnvelope } from '@/lib/api/types';
 
 export class ApiError extends Error {
@@ -61,6 +62,12 @@ const buildHeaders = (
 
   if (hasBody) {
     nextHeaders['Content-Type'] = 'application/json';
+  }
+
+  // Token JWT — necesario cuando los endpoints de recepción se protejan
+  const token = session.getToken();
+  if (token) {
+    nextHeaders['Authorization'] = `Bearer ${token}`;
   }
 
   if (critical) {

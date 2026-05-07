@@ -17,21 +17,22 @@ interface Alergia {
   descripcion?: string;
   fechaDeteccion?: string;
 }
-// Agrega este array arriba del componente, antes del export:
+
 const ALERGIAS_DISPONIBLES = [
-  { id: 1, nombre: 'Penicilina', tipo: 'MEDICAMENTO' },
-  { id: 2, nombre: 'Amoxicilina', tipo: 'MEDICAMENTO' },
-  { id: 3, nombre: 'Ibuprofeno', tipo: 'MEDICAMENTO' },
-  { id: 4, nombre: 'Latex', tipo: 'LATEX' },
-  { id: 5, nombre: 'Contraste yodado', tipo: 'CONTRASTE' },
+  { id: 1, nombre: 'Penicilina',        tipo: 'MEDICAMENTO' },
+  { id: 2, nombre: 'Amoxicilina',       tipo: 'MEDICAMENTO' },
+  { id: 3, nombre: 'Ibuprofeno',        tipo: 'MEDICAMENTO' },
+  { id: 4, nombre: 'Latex',             tipo: 'LATEX'       },
+  { id: 5, nombre: 'Contraste yodado',  tipo: 'CONTRASTE'   },
 ];
 
-const SEVERIDADES = ['LEVE', 'MODERADA', 'GRAVE'];
+const SEVERIDADES = ['LEVE', 'MODERADA', 'SEVERA', 'ANAFILAXIA'];
 
 const SEVERIDAD_COLOR: Record<string, string> = {
-  LEVE: 'badge-info',
-  MODERADA: 'badge-warning',
-  GRAVE: 'badge-danger',
+  LEVE:       'badge-info',
+  MODERADA:   'badge-warning',
+  SEVERA:     'badge-danger',
+  ANAFILAXIA: 'badge-danger',
 };
 
 export default function AlergiasPage() {
@@ -62,14 +63,14 @@ export default function AlergiasPage() {
 
   async function handleAgregar() {
     if (!form.alergiaId || !form.severidad) {
-      toast.warning('Campos requeridos', 'Ingresa el ID de alergia y la severidad.');
+      toast.warning('Campos requeridos', 'Selecciona una alergia y severidad.');
       return;
     }
     setGuardando(true);
     const res = await patientsApi.post(`/api/pacientes/${pacienteId}/alergias`, {
-      alergiaId: Number(form.alergiaId),
-      severidad: form.severidad,
-      descripcion: form.descripcion || null,
+      alergiaId:      Number(form.alergiaId),
+      severidad:      form.severidad,
+      descripcion:    form.descripcion || null,
       fechaDeteccion: form.fechaDeteccion || null,
     });
     if (res.success) {
@@ -87,7 +88,8 @@ export default function AlergiasPage() {
 
   async function handleQuitar(alergiaId: number) {
     setQuitando(alergiaId);
-    const res = await patientsApi.post(`/api/pacientes/${pacienteId}/alergias/${alergiaId}/quitar`, {});
+    const res = await patientsApi.post(
+      `/api/pacientes/${pacienteId}/alergias/${alergiaId}/quitar`, {});
     if (res.success) {
       toast.success('Alergia eliminada', 'La alergia fue desactivada.');
       void cargarAlergias();
@@ -97,7 +99,9 @@ export default function AlergiasPage() {
     setQuitando(null);
   }
 
-  if (cargandoSession) return <div className="loading-box"><p className="muted-text">Cargando sesión...</p></div>;
+  if (cargandoSession) return (
+    <div className="loading-box"><p className="muted-text">Cargando sesión...</p></div>
+  );
 
   return (
     <div className="stack-lg">
@@ -125,22 +129,25 @@ export default function AlergiasPage() {
           <h3>Registrar alergia</h3>
           <div className="filters-grid">
             <div className="field-group">
-            <span>Alergia</span>
-            <select
+              <span>Alergia</span>
+              <select
                 value={form.alergiaId}
                 onChange={(e) => setForm((p) => ({ ...p, alergiaId: e.target.value }))}
-            >
+              >
                 <option value="">Selecciona una alergia...</option>
                 {ALERGIAS_DISPONIBLES.map((a) => (
-                <option key={a.id} value={a.id}>
+                  <option key={a.id} value={a.id}>
                     {a.nombre} — {a.tipo}
-                </option>
+                  </option>
                 ))}
-            </select>
+              </select>
             </div>
             <div className="field-group">
               <span>Severidad</span>
-              <select value={form.severidad} onChange={(e) => setForm((p) => ({ ...p, severidad: e.target.value }))}>
+              <select
+                value={form.severidad}
+                onChange={(e) => setForm((p) => ({ ...p, severidad: e.target.value }))}
+              >
                 {SEVERIDADES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -149,6 +156,7 @@ export default function AlergiasPage() {
               <input
                 type="date"
                 value={form.fechaDeteccion}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setForm((p) => ({ ...p, fechaDeteccion: e.target.value }))}
               />
             </div>
@@ -171,7 +179,9 @@ export default function AlergiasPage() {
         </Card>
       )}
 
-      {loading && <div className="loading-box"><p className="muted-text">Cargando alergias...</p></div>}
+      {loading && (
+        <div className="loading-box"><p className="muted-text">Cargando alergias...</p></div>
+      )}
 
       {!loading && alergias.length === 0 && (
         <EmptyState

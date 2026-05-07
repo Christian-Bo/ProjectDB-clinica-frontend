@@ -35,7 +35,17 @@ async function request<T>(
     cache: 'no-store',
   });
 
-  const payload = await response.json() as ApiResponse<T>;
+  const raw = await response.json() as Record<string, unknown>;
+
+  // El backend devuelve { ok, code, message, data }
+  // Mapeamos a { success, errorCode, message, data } para no tocar las páginas
+  const payload: ApiResponse<T> = {
+    success: Boolean(raw.ok ?? raw.success),
+    message: (raw.message as string) ?? '',
+    data: raw.data as T | undefined,
+    errorCode: (raw.code as string) ?? (raw.errorCode as string) ?? undefined,
+  };
+
   return payload;
 }
 

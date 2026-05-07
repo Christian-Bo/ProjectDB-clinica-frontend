@@ -46,7 +46,7 @@ export default function UsuariosPage() {
 
       const data = await res.json();
 
-      if (data.success) {
+      if (data.ok) {
         setMensaje({ tipo: 'success', texto: `Usuario ${data.data.nombreUsuario} creado correctamente con rol ${data.data.rol}.` });
         setForm({ nombreUsuario: '', correoElectronico: '', password: '', nombres: '', apellidos: '', telefono: '', rol: 'Recepcion' });
       } else {
