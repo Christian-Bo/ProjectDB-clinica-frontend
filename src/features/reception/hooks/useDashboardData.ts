@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError } from '@/lib/api/client';
 import { receptionApi } from '@/lib/api/reception';
+import { session } from '@/lib/auth/session';
 import type {
   AppointmentSelection,
   PatientSelection,
@@ -58,11 +59,13 @@ export function useDashboardData() {
       setSedes(sedesResponse.data);
       setPrioridades(prioridadesResponse.data);
 
+      const currentUser = session.getUser();
       const firstSedeId = sedesResponse.data[0]?.id;
-      if (firstSedeId) {
+      if (firstSedeId || currentUser?.usuarioId) {
         setFilters((current) => ({
           ...current,
           sedeId: current.sedeId ?? firstSedeId,
+          usuarioId: current.usuarioId ?? currentUser?.usuarioId,
         }));
       }
     } catch (err) {
@@ -275,6 +278,23 @@ export function useDashboardData() {
     }
   }, [filters, refreshDashboard, toast, withLoading]);
 
+
+  const recallTicket = useCallback(async (ticketId: number) => {
+    try {
+      const response = await withLoading('recallTicket', async () =>
+        receptionApi.rellamarTicket(ticketId, { usuarioId: filters.usuarioId }),
+      );
+
+      setSelectedTicket(response.data);
+      toast.info('Llamado nuevamente', `${response.data.numeroTicket} · llamada #${response.data.contadorLlamados}.`);
+      await refreshDashboard();
+      return response.data;
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible volver a llamar.');
+      return null;
+    }
+  }, [filters.usuarioId, refreshDashboard, toast, withLoading]);
+
   const markInAttention = useCallback(async (ticketId: number) => {
     try {
       const response = await withLoading('markInAttention', async () =>
@@ -307,6 +327,25 @@ export function useDashboardData() {
     }
   }, [refreshDashboard, toast, withLoading]);
 
+  const cancelTicket = useCallback(async (ticketId: number, motivo = 'Cancelado desde panel') => {
+    try {
+      const response = await withLoading('cancelTicket', async () =>
+        receptionApi.cancelarTicket(ticketId, {
+          motivo,
+          usuarioId: filters.usuarioId,
+        }),
+      );
+
+      setSelectedTicket(response.data);
+      toast.warning('Cancelado', `${response.data.numeroTicket} cancelado.`);
+      await refreshDashboard();
+      return response.data;
+    } catch (err) {
+      toast.error('Error', err instanceof Error ? err.message : 'No fue posible cancelar.');
+      return null;
+    }
+  }, [filters.usuarioId, refreshDashboard, toast, withLoading]);
+
   const processNoShow = useCallback(async () => {
     try {
       const response = await withLoading('processNoShow', async () =>
@@ -323,14 +362,28 @@ export function useDashboardData() {
   }, [refreshDashboard, toast, withLoading]);
 
   const findTicket = useCallback(async (reference: string) => {
-    if (!reference.trim()) {
-      toast.warning('Atención', 'Ingresa un número o id.');
+    const normalized = reference.trim().toLowerCase();
+    if (!normalized) {
+      toast.warning('Atención', 'Ingresa un número, ID o DPI.');
       return null;
     }
 
+    const localMatch = tickets.find((ticket) =>
+      ticket.numeroTicket.toLowerCase() === normalized ||
+      String(ticket.ticketId) === normalized ||
+      (ticket.pacienteDocumento ?? '').toLowerCase().includes(normalized) ||
+      (ticket.numeroExpediente ?? '').toLowerCase().includes(normalized),
+    );
+
+    if (localMatch) {
+      setSelectedTicket(localMatch);
+      toast.info('Encontrado', `${localMatch.numeroTicket} - ${localMatch.estado}`);
+      return localMatch;
+    }
+
     try {
-      const response = Number.isFinite(Number(reference))
-        ? await receptionApi.getTicketById(Number(reference))
+      const response = /^\d{1,10}$/.test(normalized)
+        ? await receptionApi.getTicketById(Number(normalized))
         : await receptionApi.getTicketByNumber(reference);
 
       setSelectedTicket(response.data);
@@ -340,7 +393,7 @@ export function useDashboardData() {
       toast.error('Error', err instanceof Error ? err.message : 'No se encontró el ticket.');
       return null;
     }
-  }, [toast]);
+  }, [tickets, toast]);
 
   return useMemo(() => ({
     filters,
@@ -365,14 +418,17 @@ export function useDashboardData() {
     generateNormalTicket,
     generateSpecialTicket,
     callNext,
+    recallTicket,
     markInAttention,
     finishTicket,
+    cancelTicket,
     processNoShow,
     findTicket,
     refreshDashboard,
   }), [
     appointments,
     callNext,
+    cancelTicket,
     filters,
     findTicket,
     finishTicket,
@@ -381,6 +437,7 @@ export function useDashboardData() {
     loadAppointments,
     loadPatients,
     loading,
+    recallTicket,
     markInAttention,
     patients,
     prioridades,

@@ -65,7 +65,7 @@ export default function RegistroPage() {
     if (!validarPaso2()) return;
 
     setLoading(true);
-    const res = await patientsApi.post('/api/auth/registro', {
+    const res = await patientsApi.post('/api/auth/registro-paciente', {
       nombres: form.nombres,
       apellidos: form.apellidos,
       correoElectronico: form.correoElectronico,

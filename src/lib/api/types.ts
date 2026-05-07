@@ -54,6 +54,8 @@ export interface TicketDetail {
   servicioId: number;
   servicioNombre: string;
   especialidadNombre?: string | null;
+  ventanillaNumero?: number | null;
+  ventanillaNombre?: string | null;
   medicoId?: number | null;
   medicoNombre?: string | null;
   consultorioId?: number | null;
@@ -70,20 +72,31 @@ export interface TicketDetail {
 export interface QueueTicketPreview {
   ticketId: number;
   numeroTicket: string;
+  pacienteNombre?: string | null;
   prioridad: string;
   estado: string;
   fechaReferencia?: string | null;
+  sedeId?: number | null;
+  sedeNombre?: string | null;
+  servicioId?: number | null;
+  servicioNombre?: string | null;
   consultorioId?: number | null;
   consultorioNombre?: string | null;
+  ventanillaNombre?: string | null;
 }
 
 export interface QueueDisplayResponse {
   sedeId: number;
   sedeNombre: string;
-  servicioId: number;
-  servicioNombre: string;
+  servicioId?: number | null;
+  servicioIds?: number[];
+  servicioNombre?: string | null;
+  serviciosNombre?: string | null;
   actual?: QueueTicketPreview | null;
   proximos: QueueTicketPreview[];
+  ultimoLlamado?: QueueTicketPreview | null;
+  ticketsLlamados?: QueueTicketPreview[];
+  ultimosLlamados?: QueueTicketPreview[];
   consultadoEnUtc: string;
 }
 
@@ -120,6 +133,47 @@ export interface SpecialTicketRequest {
   servicioId?: number | null;
   medicoId?: number | null;
   motivoEspecial: string;
+  usuarioId?: number | null;
+}
+
+export interface GenerateKioskTicketRequest {
+  pacienteId?: number | null;
+  documentoPaciente?: string | null;
+  usarPacienteNoAplica?: boolean;
+  sedeId: number;
+  servicioId: number;
+  prioridadSolicitada?: string;
+  motivoEspecial?: string | null;
+  usuarioId?: number | null;
+}
+
+export interface CancelTicketRequest {
+  motivo?: string | null;
+  usuarioId?: number | null;
+}
+
+export interface RecallTicketRequest {
+  usuarioId?: number | null;
+}
+
+export interface KioskWindowConfig {
+  kioscoVentanillaId: number;
+  sedeId: number;
+  sedeNombre: string;
+  servicioId: number;
+  servicioNombre: string;
+  especialidadId?: number | null;
+  especialidadNombre?: string | null;
+  numeroVentanilla: number;
+  ventanillaNombre: string;
+  activo: boolean;
+}
+
+export interface ConfigureKioskWindowRequest {
+  sedeId: number;
+  servicioId: number;
+  numeroVentanilla: number;
+  activo: boolean;
   usuarioId?: number | null;
 }
 

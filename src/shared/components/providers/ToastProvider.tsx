@@ -28,6 +28,13 @@ const toastClassByType: Record<ToastType, string> = {
   info: 'toast toast-info',
 };
 
+const toastIconByType: Record<ToastType, string> = {
+  success: '✅',
+  warning: '⚠️',
+  error: '⛔',
+  info: 'ℹ️',
+};
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
@@ -55,13 +62,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div className="toast-viewport" aria-live="polite" aria-atomic="true">
         {items.map((item) => (
           <div key={item.id} className={toastClassByType[item.type]}>
-            <div className="toast-title-row">
-              <strong>{item.title}</strong>
-              <button className="toast-close" onClick={() => remove(item.id)} aria-label="Cerrar notificacion">
-                ×
-              </button>
+            <span className="toast-icon" aria-hidden="true">{toastIconByType[item.type]}</span>
+            <div className="toast-content">
+              <div className="toast-title-row">
+                <strong>{item.title}</strong>
+                <button className="toast-close" onClick={() => remove(item.id)} aria-label="Cerrar notificacion">
+                  ×
+                </button>
+              </div>
+              {item.description ? <p>{item.description}</p> : null}
             </div>
-            {item.description ? <p>{item.description}</p> : null}
           </div>
         ))}
       </div>

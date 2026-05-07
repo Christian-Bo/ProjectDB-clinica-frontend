@@ -1,29 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { consultasApi } from '@/lib/api/consultas';
+import { session } from '@/lib/auth/session';
 
 export default function AbrirConsultaPage() {
   const params = useParams();
   const router = useRouter();
-  // En esta ruta el param se llama consultaId pero en realidad es el ticketId
-  // porque Next.js requiere el mismo nombre de slug en toda la rama /consultas/[x]/...
   const ticketId = Number(params.consultaId);
 
   const [modalidad, setModalidad] = useState('PRESENCIAL');
-  const [usuarioId, setUsuarioId] = useState('1');
+  const [usuarioId, setUsuarioId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const user = session.getUser();
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    setUsuarioId(user.usuarioId);
+  }, [router]);
+
   const handleAbrir = async () => {
+    if (!usuarioId) {
+      setError('No se pudo obtener el usuario de la sesión.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const res = await consultasApi.abrirDesdeTicket({
         ticketId,
         modalidad,
-        usuarioId: Number(usuarioId),
+        usuarioId,
       });
       router.push(`/medico/consultas/${res.data.consultaId}`);
     } catch (e: unknown) {
@@ -63,39 +75,23 @@ export default function AbrirConsultaPage() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Modalidad</span>
-            <select
-              className="input"
-              value={modalidad}
-              onChange={(e) => setModalidad(e.target.value)}
-            >
-              <option value="PRESENCIAL">Presencial</option>
-              <option value="TELEMEDICINA">Telemedicina</option>
-            </select>
-          </label>
-
-          <label style={{ display: 'grid', gap: 6 }}>
-            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>ID de médico (temporal)</span>
-            <input
-              type="number"
-              className="input"
-              value={usuarioId}
-              onChange={(e) => setUsuarioId(e.target.value)}
-              placeholder="UsuarioId"
-            />
-            <span className="muted-text" style={{ fontSize: '0.8rem' }}>
-              Esto vendrá del JWT cuando esté implementada la autenticación.
-            </span>
-          </label>
-        </div>
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Modalidad</span>
+          <select
+            className="input"
+            value={modalidad}
+            onChange={(e) => setModalidad(e.target.value)}
+          >
+            <option value="PRESENCIAL">Presencial</option>
+            <option value="TELEMEDICINA">Telemedicina</option>
+          </select>
+        </label>
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             className="btn btn-primary"
             onClick={() => void handleAbrir()}
-            disabled={loading}
+            disabled={loading || !usuarioId}
           >
             {loading && <span className="btn-spinner" />}
             <span>{loading ? 'Abriendo...' : 'Abrir consulta'}</span>

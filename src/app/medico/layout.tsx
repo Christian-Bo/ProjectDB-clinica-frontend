@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { session } from '@/lib/auth/session';
 
 const navItems = [
   { label: 'Agenda del día', hint: 'Tickets en espera', href: '/medico/agenda' },
@@ -6,6 +10,13 @@ const navItems = [
 ];
 
 export default function MedicoLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    session.clear();
+    router.push('/login');
+  };
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -31,6 +42,33 @@ export default function MedicoLayout({ children }: { children: React.ReactNode }
           <p style={{ fontSize: '0.78rem', marginTop: 4, opacity: 0.7 }}>
             Historia clínica, recetas y órdenes
           </p>
+        </div>
+
+        {/* Acciones de sesión */}
+        <div style={{ marginTop: 'auto', padding: '12px', display: 'grid', gap: 8 }}>
+          <Link
+            href="/"
+            className="sidebar-link"
+            style={{ fontSize: '0.85rem', opacity: 0.8 }}
+          >
+            <span>← Dashboard principal</span>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="sidebar-link"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              color: 'var(--color-danger)',
+              fontSize: '0.85rem',
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-sm)',
+            }}
+          >
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
