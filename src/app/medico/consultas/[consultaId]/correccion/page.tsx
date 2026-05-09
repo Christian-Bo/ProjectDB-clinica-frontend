@@ -48,7 +48,7 @@ export default function CorreccionPage() {
           <span className="eyebrow">Consulta #{consultaId}</span>
           <h2>Agregar nota de corrección</h2>
           <p className="muted-text">
-            Esta nota es <strong>append-only</strong>. No modifica el registro original.
+            Esta nota es un registro adicional. No modifica la consulta original.
           </p>
         </div>
         <button className="btn btn-ghost" onClick={() => router.back()}>← Volver</button>
