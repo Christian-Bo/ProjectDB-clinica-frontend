@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { session } from '@/lib/auth/session';
 
 const NAV_ITEMS = [
   {
@@ -26,6 +27,12 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    session.clear();
+    router.replace('/login');
+  };
 
   return (
     <div className="app-shell">
@@ -40,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="sidebar-nav" aria-label="Módulo 3">
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
@@ -62,11 +69,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="sidebar-note">
-          <strong style={{ color: '#2EC4B6', fontSize: '0.8rem' }}>💡 Tip</strong>
-          <p style={{ margin: '4px 0 0', fontSize: '0.78rem' }}>
-            La pantalla pública se puede abrir en otro monitor o TV para la sala de espera.
-          </p>
+        <div className="sidebar-footer-actions">
+          <div className="sidebar-note sidebar-note-compact">
+            <strong style={{ color: '#2EC4B6', fontSize: '0.8rem' }}>💡 Tip</strong>
+            <p style={{ margin: '4px 0 0', fontSize: '0.78rem' }}>
+              La pantalla pública se puede abrir en otro monitor o TV para la sala de espera.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="sidebar-link sidebar-logout-button"
+            aria-label="Cerrar sesión"
+          >
+            <span>🚪 Cerrar sesión</span>
+            <small>Salir del módulo de recepción</small>
+          </button>
         </div>
       </aside>
 
@@ -76,14 +95,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="eyebrow">Módulo 3</span>
             <h2>Recepción, tickets y pantalla pública</h2>
           </div>
-          <Link
-            className="btn btn-secondary"
-            href="/pantalla-publica"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            📺 Pantalla pública
-          </Link>
+          <div className="button-row-wrap">
+            <Link
+              className="btn btn-secondary"
+              href="/kiosco-tickets"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              🎫 Kiosco independiente
+            </Link>
+            <Link
+              className="btn btn-secondary"
+              href="/pantalla-publica"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              📺 Pantalla pública
+            </Link>
+          </div>
         </header>
 
         <main className="main-content" id="main-content">

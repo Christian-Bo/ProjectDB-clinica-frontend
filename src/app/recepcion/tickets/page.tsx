@@ -1,12 +1,15 @@
 'use client';
 
+import Link from 'next/link';
 import { TicketKiosk } from '@/features/reception/components/TicketKiosk';
-import { AppShell } from '@/shared/components/shell/AppShell';
 
 export default function ReceptionTicketsPage() {
   return (
-    <AppShell>
-      <TicketKiosk />
-    </AppShell>
+    <main className="standalone-kiosk-shell">
+      <Link className="kiosk-back-to-dashboard" href="/recepcion">
+        ← Volver a recepción
+      </Link>
+      <TicketKiosk standalone />
+    </main>
   );
 }
