@@ -37,8 +37,6 @@ async function request<T>(
 
   const raw = await response.json() as Record<string, unknown>;
 
-  // El backend devuelve { ok, code, message, data }
-  // Mapeamos a { success, errorCode, message, data } para no tocar las páginas
   const payload: ApiResponse<T> = {
     success: Boolean(raw.ok ?? raw.success),
     message: (raw.message as string) ?? '',
@@ -50,8 +48,12 @@ async function request<T>(
 }
 
 export const patientsApi = {
-  get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown, critical = false) =>
+  get:   <T>(path: string) =>
+    request<T>('GET', path),
+  post:  <T>(path: string, body?: unknown, critical = false) =>
     request<T>('POST', path, body, critical),
-  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
+  put:   <T>(path: string, body?: unknown) =>
+    request<T>('PUT', path, body),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>('PATCH', path, body),
 };

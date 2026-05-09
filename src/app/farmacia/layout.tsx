@@ -7,6 +7,8 @@ const navItems = [
   { label: 'Recetas',      hint: 'Despacho de recetas',  href: '/farmacia' },
   { label: 'Medicamentos', hint: 'Catálogo',             href: '/farmacia/medicamentos' },
   { label: 'Caja',         hint: 'Cuentas y pagos',      href: '/farmacia/caja' },
+  { label: 'Proveedores',  hint: 'Catálogo',             href: '/farmacia/proveedores' },
+  { label: 'Compras',      hint: 'Órdenes de compra',    href: '/farmacia/compras' },
 ];
 
 export default function FarmaciaLayout({ children }: { children: React.ReactNode }) {
