@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { href: '/admin/kiosco', label: '🖥️ Kiosco tickets' },
   { href: '/admin/pantallas', label: '📺 Pantallas' },
   { href: '/admin/usuarios', label: '👥 Usuarios' },
+  { href: '/admin/procedimientos', label: '🧩 Procedimientos' },
+  
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

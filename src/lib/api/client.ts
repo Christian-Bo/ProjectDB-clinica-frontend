@@ -16,6 +16,8 @@ export class ApiError extends Error {
   }
 }
 
+
+
 const withTimeout = async (input: RequestInfo | URL, init: RequestInit = {}) => {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), env.apiTimeoutMs);
@@ -154,4 +156,10 @@ export const apiClient = {
     body?: unknown,
     critical = false,
   ) => request<T>('POST', path, { body, critical }),
+
+  patch: <T>(
+  path: string,
+  body?: unknown,
+  critical = false,
+) => request<T>('PATCH', path, { body, critical }),
 };
