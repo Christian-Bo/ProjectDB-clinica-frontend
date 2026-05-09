@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ReceptionDashboard } from '@/features/reception/components/ReceptionDashboard';
+import { patientsApi } from '@/lib/api/patients';
 import { session } from '@/lib/auth/session';
-import { AppShell } from '@/shared/components/shell/AppShell';
 
 export default function HomePage() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const user = session.getUser();
@@ -18,22 +16,27 @@ export default function HomePage() {
     }
 
     const roles = user.roles ?? [];
-    if (roles.includes('Administrador') || roles.includes('Supervisor')) {
-      router.push('/admin');
+
+    if (roles.includes('Paciente')) {
+      router.push('/paciente');
     } else if (roles.includes('Medico')) {
       router.push('/medico');
-    } else if (roles.includes('Paciente')) {
-      router.push('/paciente');
+    } else if (roles.includes('Administrador') || roles.includes('Supervisor')) {
+      router.push('/admin');
+    } else if (roles.includes('Farmacia')) {
+      router.push('/farmacia');
+    } else if (roles.includes('Recepcion')) {
+      patientsApi
+        .get<{ data: unknown[] }>(`/api/secretaria/contextos?usuarioId=${user.usuarioId}`)
+        .then((res) => {
+          const tieneSecretaria = Array.isArray((res as any).data) && (res as any).data.length > 0;
+          router.push(tieneSecretaria ? '/secretaria' : '/recepcion');
+        })
+        .catch(() => router.push('/recepcion'));
     } else {
-      setReady(true);
+      router.push('/login');
     }
   }, [router]);
 
-  if (!ready) return null;
-
-  return (
-    <AppShell>
-      <ReceptionDashboard />
-    </AppShell>
-  );
+  return null;
 }

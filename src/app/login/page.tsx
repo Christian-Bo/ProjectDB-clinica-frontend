@@ -45,10 +45,10 @@ export default function LoginPage() {
       session.setToken(loginData.accessToken);
       session.setUser({
         usuarioId: loginData.user.usuarioId,
-        username: loginData.user.username,
+        username:  loginData.user.username,
         nombreCompleto: loginData.user.nombreCompleto,
-        email: loginData.user.email,
-        roles: loginData.user.roles,
+        email:     loginData.user.email,
+        roles:     loginData.user.roles,
       });
       toast.success('Bienvenido', `Hola, ${loginData.user.nombreCompleto}`);
       const roles = loginData.user.roles;
@@ -58,6 +58,22 @@ export default function LoginPage() {
         setTimeout(() => window.location.href = '/medico', 800);
       } else if (roles.includes('Administrador') || roles.includes('Supervisor')) {
         setTimeout(() => window.location.href = '/admin', 800);
+      } else if (roles.includes('Farmacia')) {
+        setTimeout(() => window.location.href = '/farmacia', 800);
+      } else if (roles.includes('Recepcion')) {
+        try {
+          const ctxRes = await patientsApi.get<{ data: unknown[] }>(
+            `/api/secretaria/contextos?usuarioId=${loginData.user.usuarioId}`
+          );
+          const tieneSecretaria =
+            Array.isArray((ctxRes as any).data) && (ctxRes as any).data.length > 0;
+          setTimeout(
+            () => window.location.href = tieneSecretaria ? '/secretaria' : '/recepcion',
+            800
+          );
+        } catch {
+          setTimeout(() => window.location.href = '/recepcion', 800);
+        }
       } else {
         setTimeout(() => window.location.href = '/', 800);
       }
@@ -69,8 +85,6 @@ export default function LoginPage() {
 
   return (
     <div className="lp-root">
-
-      {/* Panel izquierdo */}
       <div className="lp-left">
         <div className="lp-orb1" />
         <div className="lp-orb2" />
@@ -117,7 +131,6 @@ export default function LoginPage() {
         <div className="lp-footer">Clínica Integral © 2026 — Todos los derechos reservados</div>
       </div>
 
-      {/* Panel derecho */}
       <div className="lp-right">
         <div className="lp-form-wrap">
           <div className="lp-form-head">
@@ -129,7 +142,8 @@ export default function LoginPage() {
             <div className="lp-field">
               <label>Usuario</label>
               <div className="lp-input-wrap">
-                <span className="lp-input-icon" style={{ color: focusedField === 'username' ? '#2EC4B6' : '#9ca3af' }}>
+                <span className="lp-input-icon"
+                  style={{ color: focusedField === 'username' ? '#2EC4B6' : '#9ca3af' }}>
                   👤
                 </span>
                 <input
@@ -149,7 +163,8 @@ export default function LoginPage() {
             <div className="lp-field">
               <label>Contraseña</label>
               <div className="lp-input-wrap">
-                <span className="lp-input-icon" style={{ color: focusedField === 'password' ? '#2EC4B6' : '#9ca3af' }}>
+                <span className="lp-input-icon"
+                  style={{ color: focusedField === 'password' ? '#2EC4B6' : '#9ca3af' }}>
                   🔑
                 </span>
                 <input
@@ -164,7 +179,8 @@ export default function LoginPage() {
                   onKeyDown={(e) => { if (e.key === 'Enter') void handleLogin(); }}
                   style={{ paddingRight: '44px' }}
                 />
-                <button className="lp-eye" type="button" onClick={() => setShowPassword(p => !p)}>
+                <button className="lp-eye" type="button"
+                  onClick={() => setShowPassword(p => !p)}>
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
@@ -184,7 +200,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
     </div>
   );
 }
