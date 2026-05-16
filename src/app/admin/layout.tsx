@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: '/admin/pantallas', label: '📺 Pantallas' },
   { href: '/admin/usuarios', label: '👥 Usuarios' },
   { href: '/admin/procedimientos', label: '🧩 Procedimientos' },
-  
+  { href: '/admin/etl', label: '⚡ ETL / Reportes' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
