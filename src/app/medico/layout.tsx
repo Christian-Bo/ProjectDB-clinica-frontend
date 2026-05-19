@@ -7,6 +7,7 @@ import { session } from '@/lib/auth/session';
 
 const navItems = [
   { label: 'Agenda del día', hint: 'Tickets en espera', href: '/medico/agenda' },
+  { label: 'Mis consultas', hint: 'Ver y filtrar consultas', href: '/medico/consultas' },
   { label: 'Órdenes', hint: 'Lab e imagen', href: '/medico/ordenes' },
 ];
 
