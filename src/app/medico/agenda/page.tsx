@@ -6,6 +6,9 @@ import { apiClient } from '@/lib/api/client';
 import { consultasApi } from '@/lib/api/consultas';
 import type { TicketDetail } from '@/lib/api/types';
 
+// Tipo extendido para incluir consultaId cuando ya existe consulta abierta
+type TicketConConsulta = import('@/lib/api/types').TicketDetail & { consultaId?: number };
+
 const ESTADOS_VALIDOS = ['LLAMADO', 'EN_ATENCION'];
 
 function EstadoBadge({ estado }: { estado: string }) {
@@ -19,7 +22,7 @@ function EstadoBadge({ estado }: { estado: string }) {
 }
 
 export default function AgendaPage() {
-  const [tickets, setTickets] = useState<TicketDetail[]>([]);
+  const [tickets, setTickets] = useState<TicketConConsulta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +34,7 @@ export default function AgendaPage() {
       const validos = res.data.filter((t) => ESTADOS_VALIDOS.includes(t.estado));
 
       // Filtrar tickets que ya tienen consulta asociada
-      const sinConsulta: TicketDetail[] = [];
+      const sinConsulta: TicketConConsulta[] = [];
       await Promise.all(
         validos.map(async (ticket) => {
           try {
@@ -42,8 +45,8 @@ export default function AgendaPage() {
               // No tiene consulta asociada — mostrar en agenda
               sinConsulta.push(ticket);
             } else if (consultaRes.data.estado === 'ABIERTA') {
-              // Tiene consulta ABIERTA — también mostrar para que el médico pueda continuar
-              sinConsulta.push(ticket);
+              // Tiene consulta ABIERTA — mostrar con consultaId para ir directo
+              sinConsulta.push({ ...ticket, consultaId: consultaRes.data.consultaId });
             }
             // Si está CERRADA — no mostrar en agenda
           } catch {
@@ -124,13 +127,23 @@ export default function AgendaPage() {
                   )}
                 </div>
 
-                <Link
-                  href={`/medico/consultas/${ticket.ticketId}/abrir`}
-                  className="btn btn-primary"
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  Abrir consulta
-                </Link>
+                {ticket.consultaId ? (
+                  <Link
+                    href={`/medico/consultas/${ticket.consultaId}`}
+                    className="btn btn-secondary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Ver consulta
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/medico/consultas/${ticket.ticketId}/abrir`}
+                    className="btn btn-primary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Abrir consulta
+                  </Link>
+                )}
               </div>
             </div>
           ))}
