@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api/client';
+import { consultasApi } from '@/lib/api/consultas';
 import type { TicketDetail } from '@/lib/api/types';
 
 const ESTADOS_VALIDOS = ['LLAMADO', 'EN_ATENCION'];
@@ -28,7 +29,33 @@ export default function AgendaPage() {
     try {
       const res = await apiClient.get<TicketDetail[]>('/api/tickets');
       const validos = res.data.filter((t) => ESTADOS_VALIDOS.includes(t.estado));
-      setTickets(validos);
+
+      // Filtrar tickets que ya tienen consulta asociada
+      const sinConsulta: TicketDetail[] = [];
+      await Promise.all(
+        validos.map(async (ticket) => {
+          try {
+            // Intentar abrir con el ticketId — si ya existe consulta el SP devuelve 409
+            // En su lugar verificamos buscando consultas existentes
+            const consultaRes = await consultasApi.obtener(ticket.ticketId);
+            if (!consultaRes.ok || !consultaRes.data) {
+              // No tiene consulta asociada — mostrar en agenda
+              sinConsulta.push(ticket);
+            } else if (consultaRes.data.estado === 'ABIERTA') {
+              // Tiene consulta ABIERTA — también mostrar para que el médico pueda continuar
+              sinConsulta.push(ticket);
+            }
+            // Si está CERRADA — no mostrar en agenda
+          } catch {
+            // No encontró consulta — mostrar en agenda
+            sinConsulta.push(ticket);
+          }
+        })
+      );
+
+      // Ordenar por ticketId descendente
+      sinConsulta.sort((a, b) => b.ticketId - a.ticketId);
+      setTickets(sinConsulta);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error cargando tickets');
     } finally {
@@ -44,7 +71,7 @@ export default function AgendaPage() {
         <div>
           <span className="eyebrow">Módulo 4</span>
           <h2>Agenda del día</h2>
-          <p className="muted-text">Tickets listos para atención médica</p>
+          <p className="muted-text">Tickets pendientes de atención médica</p>
         </div>
         <button className="btn btn-secondary" onClick={() => void cargar()}>
           Actualizar
@@ -68,8 +95,8 @@ export default function AgendaPage() {
       {!loading && !error && tickets.length === 0 && (
         <div className="empty-state">
           <div className="empty-state-icon">📋</div>
-          <h3>Sin tickets en atención</h3>
-          <p>No hay tickets en estado LLAMADO o EN_ATENCION en este momento.</p>
+          <h3>Sin tickets pendientes</h3>
+          <p>No hay tickets pendientes de atención en este momento.</p>
         </div>
       )}
 
@@ -97,7 +124,6 @@ export default function AgendaPage() {
                   )}
                 </div>
 
-                {/* La ruta usa ticketId como valor pero el param se llama consultaId */}
                 <Link
                   href={`/medico/consultas/${ticket.ticketId}/abrir`}
                   className="btn btn-primary"
