@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { session } from '@/lib/auth/session';
 
 const navItems = [
@@ -11,11 +12,36 @@ const navItems = [
 
 export default function MedicoLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const [verificando, setVerificando] = useState(true);
+
+  useEffect(() => {
+    const user = session.getUser();
+    if (!user) {
+      router.push('/login');
+    } else {
+      setVerificando(false);
+    }
+  }, [router]);
 
   const handleLogout = () => {
     session.clear();
     router.push('/login');
   };
+
+  if (verificando) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '1rem',
+        color: 'var(--color-text-secondary)',
+      }}>
+        Verificando sesión...
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
