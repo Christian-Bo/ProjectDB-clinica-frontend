@@ -58,7 +58,7 @@ export default function ListaConsultasPage() {
       CONSULTAS_CONOCIDAS.map(async (id) => {
         try {
           const res = await consultasApi.obtener(id);
-          if (res.success && res.data) {
+          if (res.ok && res.data) {
             resultados.push(res.data as ConsultaResumen);
           }
         } catch {
