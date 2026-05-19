@@ -19,7 +19,7 @@ function EstadoBadge({ estado }: { estado: string }) {
 }
 
 export default function AgendaPage() {
-  const [tickets, setTickets] = useState<TicketDetail[]>([]);
+  const [tickets, setTickets] = useState<(TicketDetail & { consultaId?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,8 +42,8 @@ export default function AgendaPage() {
               // No tiene consulta asociada — mostrar en agenda
               sinConsulta.push(ticket);
             } else if (consultaRes.data.estado === 'ABIERTA') {
-              // Tiene consulta ABIERTA — también mostrar para que el médico pueda continuar
-              sinConsulta.push(ticket);
+              // Tiene consulta ABIERTA — mostrar con consultaId para ir directo
+              sinConsulta.push({ ...ticket, consultaId: consultaRes.data.consultaId });
             }
             // Si está CERRADA — no mostrar en agenda
           } catch {
@@ -124,13 +124,23 @@ export default function AgendaPage() {
                   )}
                 </div>
 
-                <Link
-                  href={`/medico/consultas/${ticket.ticketId}/abrir`}
-                  className="btn btn-primary"
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  Abrir consulta
-                </Link>
+                {ticket.consultaId ? (
+                  <Link
+                    href={`/medico/consultas/${ticket.consultaId}`}
+                    className="btn btn-secondary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Ver consulta
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/medico/consultas/${ticket.ticketId}/abrir`}
+                    className="btn btn-primary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Abrir consulta
+                  </Link>
+                )}
               </div>
             </div>
           ))}
